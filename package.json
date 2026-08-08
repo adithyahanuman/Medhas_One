@@ -1,0 +1,21 @@
+{
+  "name": "medhas",
+  "version": "1.0.0",
+  "description": "MEDHAS — AI Voice Assistant (Phase 1)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEDHAS — Reset Password</title>
+  <meta name="description" content="Reset your MEDHAS AI voice assistant password." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#060812;--accent:#6c63ff;--accent-2:#a78bfa;--accent-3:#38bdf8;
+      --accent-glow:rgba(108,99,255,0.45);--text:#e8eaf0;
+      --text-2:rgba(200,210,230,0.75);--text-3:rgba(180,190,215,0.45);
+      --border:rgba(108,99,255,0.2);--border-bright:rgba(108,99,255,0.5);
+      --input-bg:rgba(8,12,30,0.8);--mono:'JetBrains Mono',monospace;
+      --sans:'Inter',sans-serif;--radius:14px;
+    }
+    body { font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden;-webkit-font-smoothing:antialiased; }
+    #particle-canvas { position:fixed;inset:0;z-index:0;pointer-events:none; }
+
+    .auth-left { flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(145deg,#0a0520 0%,#12063e 40%,#0a1540 100%);overflow:hidden;padding:3rem; }
+    .auth-left::before { content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 30% 30%,rgba(108,99,255,0.25) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 80% 70%,rgba(56,189,248,0.15) 0%,transparent 60%); }
+    .left-brand { position:relative;z-index:2;text-align:center; }
+    .left-logo { font-family:var(--mono);font-size:2.2rem;font-weight:700;letter-spacing:8px;background:linear-gradient(135deg,#c4b5fd,var(--accent),var(--accent-3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;filter:drop-shadow(0 0 40px rgba(108,99,255,0.6)); }
+    .left-tagline { font-size:1rem;color:var(--text-2);line-height:1.7;max-width:320px;margin:0 auto 3rem; }
+    .hud-ring { position:relative;z-index:2;width:280px;height:280px;margin:0 auto; }
+    .hud-ring svg { width:100%;height:100%; }
+    .ring-outer { animation:spin-cw 12s linear infinite;transform-origin:140px 140px; }
+    .ring-mid   { animation:spin-ccw 8s linear infinite;transform-origin:140px 140px; }
+    .ring-inner { animation:spin-cw 5s linear infinite;transform-origin:140px 140px; }
+    .ring-pulse { animation:pulse-ring 3s ease-in-out infinite;transform-origin:140px 140px; }
+    @keyframes spin-cw  { to{transform:rotate(360deg);} }
+    @keyframes spin-ccw { to{transform:rotate(-360deg);} }
+    @keyframes pulse-ring { 0%,100%{opacity:.6;transform:scale(1);}50%{opacity:1;transform:scale(1.04);} }
+    .dot-orbit { animation:dot-orbit 6s linear infinite;transform-origin:140px 140px; }
+    @keyframes dot-orbit { to{transform:rotate(360deg);} }
+    .left-features { position:relative;z-index:2;display:flex;flex-direction:column;gap:.7rem;margin-top:2.5rem; }
+    .feat-row { display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2); }
+    .feat-dot { width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 8px var(--accent); }
+
+    .auth-right { width:480px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:2rem;position:relative;z-index:1;background:rgba(6,8,18,0.95);border-left:1px solid var(--border);overflow-y:auto; }
+    .auth-card { width:100%;max-width:400px; }
+
+    .page-nav { display:flex;gap:0;background:rgba(108,99,255,0.07);border:1px solid var(--border);border-radius:50px;padding:4px;margin-bottom:2rem; }
+    .page-nav a { flex:1;text-align:center;padding:9px 4px;font-size:12.5px;font-weight:500;color:var(--text-3);border-radius:50px;cursor:pointer;transition:all 0.3s;letter-spacing:0.3px;text-decoration:none; }
+    .page-nav a.active { background:var(--accent);color:#fff;box-shadow:0 4px 20px var(--accent-glow); }
+
+    .auth-heading { font-size:1.6rem;font-weight:800;margin-bottom:0.4rem;letter-spacing:-0.02em; }
+    .auth-sub { font-size:0.88rem;color:var(--text-2);margin-bottom:1.8rem;line-height:1.6; }
+    .auth-sub a { color:var(--accent-2);text-decoration:underline;cursor:pointer; }
+
+    .field-group { margin-bottom:1.2rem; }
+    .field-label { display:block;font-size:11.5px;font-weight:600;color:var(--text-2);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px; }
+    .field-wrap { position:relative; }
+    .field-icon { position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;opacity:0.5; }
+    .field-input { width:100%;padding:13px 14px 13px 42px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;transition:border-color 0.25s,box-shadow 0.25s;outline:none; }
+    .field-input::placeholder { color:var(--text-3); }
+    .field-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
+    .field-toggle { position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:15px;padding:4px;transition:color 0.2s; }
+    .field-toggle:hover { color:var(--accent-2); }
+
+    .btn-auth { width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;font-family:var(--sans);font-size:14.5px;font-weight:700;letter-spacing:0.3px;border:none;border-radius:var(--radius);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 6px 30px var(--accent-glow);position:relative;overflow:hidden; }
+    .btn-auth::after { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity 0.2s; }
+    .btn-auth:hover { transform:translateY(-2px);box-shadow:0 10px 40px var(--accent-glow); }
+    .btn-auth:hover::after { opacity:1; }
+    .btn-auth:active { transform:translateY(0); }
+
+    .back-link { display:block;text-align:center;margin-top:1.2rem;font-size:13px;color:var(--accent-2);cursor:pointer;text-decoration:none; }
+    .back-link:hover { color:var(--accent); }
+
+    /* OTP */
+    .otp-boxes { display:flex;gap:10px;justify-content:center;margin-bottom:1.5rem; }
+    .otp-box { width:52px;height:58px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius);text-align:center;font-size:1.4rem;font-weight:700;color:var(--text);outline:none;transition:border-color 0.25s,box-shadow 0.25s; }
+    .otp-box:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
+
+    /* Success */
+    .auth-success { text-align:center;padding:2.5rem 0; }
+    .success-icon { width:72px;height:72px;border-radius:50%;background:rgba(34,197,94,0.12);border:2px solid rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1.2rem;animation:pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes pop-in { 0%{transform:scale(0);opacity:0;} }
+
+    .step { display:none; }
+    .step.active { display:block; }
+
+    .back-home { position:fixed;top:24px;left:24px;z-index:100;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--text-2);background:rgba(12,18,40,0.8);border:1px solid var(--border);border-radius:30px;padding:8px 16px;backdrop-filter:blur(16px);transition:color 0.2s,border-color 0.2s;text-decoration:none; }
+    .back-home:hover { color:var(--accent-2);border-color:var(--border-bright); }
+
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .spinner { display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px; }
+
+    @media (max-width:900px) { .auth-left{display:none;} .auth-right{width:100%;border-left:none;} }
+  </style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+<a href="index.html" class="back-home">← Back to Home</a>
+
+<!-- LEFT PANEL -->
+<div class="auth-left">
+  <div class="left-brand">
+    <div class="left-logo">MEDHAS</div>
+    <p class="left-tagline">Your adaptive neural intelligence — always listening, always local, always fast.</p>
+    <div class="hud-ring">
+      <svg viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="ring-outer">
+          <circle cx="140" cy="140" r="128" stroke="rgba(108,99,255,0.3)" stroke-width="1" stroke-dasharray="6 4"/>
+          <circle cx="140" cy="140" r="128" stroke="rgba(108,99,255,0.6)" stroke-width="1.5" stroke-dasharray="2 30"/>
+          <rect x="262" y="137" width="8" height="6" rx="1" fill="#6c63ff" opacity="0.9"/>
+          <rect x="10"  y="137" width="8" height="6" rx="1" fill="#6c63ff" opacity="0.9"/>
+        </g>
+        <g class="ring-mid">
+          <circle cx="140" cy="140" r="100" stroke="rgba(167,139,250,0.4)" stroke-width="1.5" stroke-dasharray="12 6"/>
+          <circle cx="140" cy="140" r="100" stroke="#a78bfa" stroke-width="2" stroke-dasharray="3 40"/>
+        </g>
+        <g class="ring-inner">
+          <circle cx="140" cy="140" r="70" stroke="rgba(56,189,248,0.5)" stroke-width="1.5" stroke-dasharray="8 5"/>
+          <circle cx="140" cy="140" r="70" stroke="#38bdf8" stroke-width="2" stroke-dasharray="2 20"/>
+        </g>
+        <g class="ring-pulse">
+          <circle cx="140" cy="140" r="42" stroke="rgba(108,99,255,0.5)" stroke-width="1.5"/>
+          <circle cx="140" cy="140" r="28" fill="rgba(108,99,255,0.08)" stroke="rgba(108,99,255,0.6)" stroke-width="2"/>
+        </g>
+        <g class="dot-orbit"><circle cx="140" cy="12" r="5" fill="#6c63ff" filter="url(#glow)"/></g>
+        <text x="140" y="148" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="18" font-weight="700" fill="url(#cg)">M</text>
+        <line x1="140" y1="90"  x2="140" y2="110" stroke="rgba(108,99,255,0.4)" stroke-width="1"/>
+        <line x1="140" y1="170" x2="140" y2="190" stroke="rgba(108,99,255,0.4)" stroke-width="1"/>
+        <line x1="90"  y1="140" x2="110" y2="140" stroke="rgba(108,99,255,0.4)" stroke-width="1"/>
+        <line x1="170" y1="140" x2="190" y2="140" stroke="rgba(108,99,255,0.4)" stroke-width="1"/>
+        <defs>
+          <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+      </svg>
+    </div>
+    <div class="left-features">
+      <div class="feat-row"><div class="feat-dot"></div> 100% local — no data leaves your device</div>
+      <div class="feat-row"><div class="feat-dot"></div> &lt;80ms voice response latency</div>
+      <div class="feat-row"><div class="feat-dot"></div> 128K token context window</div>
+      <div class="feat-row"><div class="feat-dot"></div> Works offline, always private</div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL — single column, no extra column -->
+<div class="auth-right">
+  <div class="auth-card">
+
+    <nav class="page-nav">
+      <a href="signin.html">Sign In</a>
+      <a href="signup.html">Sign Up</a>
+      <a href="forgot.html" class="active">Forgot</a>
+    </nav>
+
+    <!-- Step 1: Enter email -->
+    <div class="step active" id="step1">
+      <h1 class="auth-heading">Reset password 🔑</h1>
+      <p class="auth-sub">Enter your email and we'll send a 6-digit OTP code to reset your password.</p>
+      <form onsubmit="sendOtp(event)">
+        <div class="field-group">
+          <label class="field-label">Email Address</label>
+          <div class="field-wrap">
+            <span class="field-icon">📧</span>
+            <input id="fp-email" type="email" class="field-input" placeholder="you@example.com" required />
+          </div>
+        </div>
+        <button type="submit" class="btn-auth">Send OTP Code →</button>
+      </form>
+      <a class="back-link" href="signin.html">← Back to sign in</a>
+    </div>
+
+    <!-- Step 2: Enter OTP -->
+    <div class="step" id="step2">
+      <h1 class="auth-heading">Enter OTP 📩</h1>
+      <p class="auth-sub">We sent a 6-digit code to <strong id="fp-email-display" style="color:var(--accent-2)"></strong>. Check your inbox.</p>
+      <div class="otp-boxes">
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,0)" id="otp0" />
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,1)" id="otp1" />
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,2)" id="otp2" />
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,3)" id="otp3" />
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,4)" id="otp4" />
+        <input class="otp-box" type="text" maxlength="1" oninput="otpNext(this,5)" id="otp5" />
+      </div>
+      <button class="btn-auth" onclick="verifyOtp()">Verify OTP →</button>
+      <div style="text-align:center;margin-top:1rem;font-size:13px;color:var(--text-3);">
+        Didn't get it? <a class="back-link" style="display:inline;margin-top:0;" onclick="alert('OTP resent! (demo)')">Resend code</a>
+      </div>
+    </div>
+
+    <!-- Step 3: New password — single column, no second column -->
+    <div class="step" id="step3">
+      <h1 class="auth-heading">New password 🛡️</h1>
+      <p class="auth-sub">Choose a strong password for your account.</p>
+      <form onsubmit="resetPassword(event)">
+        <div class="field-group">
+          <label class="field-label">New Password</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input id="np-pass" type="password" class="field-input" placeholder="Min. 8 characters" required />
+            <button type="button" class="field-toggle" onclick="togglePwd('np-pass',this)">👁</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Confirm New Password</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input id="np-pass2" type="password" class="field-input" placeholder="Re-enter password" required />
+          </div>
+        </div>
+        <button type="submit" class="btn-auth">Reset Password →</button>
+      </form>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div class="step" id="step4">
+      <div class="auth-success">
+        <div class="success-icon">✅</div>
+        <h2 style="margin-bottom:0.5rem;">Password Reset!</h2>
+        <p style="color:var(--text-2);font-size:14px;margin-bottom:1.5rem;">Your password has been updated successfully.</p>
+        <a href="signin.html" class="btn-auth" style="display:block;text-decoration:none;text-align:center;">Sign In Now →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function goStep(n) {
+    document.querySelectorAll('.step').forEach((s,i) => s.classList.toggle('active', i+1 === n));
+  }
+  function togglePwd(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁':'🙈';}
+  function sendOtp(e) {
+    e.preventDefault();
+    const email = document.getElementById('fp-email').value;
+    document.getElementById('fp-email-display').textContent = email;
+    goStep(2);
+    document.getElementById('otp0').focus();
+  }
+  function otpNext(el,idx){if(el.value.length===1&&idx<5)document.getElementById('otp'+(idx+1)).focus();}
+  function verifyOtp() {
+    const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');
+    if(code.length<6){alert('Please enter all 6 digits');return;}
+    goStep(3);
+  }
+  function resetPassword(e) {
+    e.preventDefault();
+    const p1=document.getElementById('np-pass').value;
+    const p2=document.getElementById('np-pass2').value;
+    if(p1!==p2){alert('Passwords do not match');return;}
+    goStep(4);
+  }
+  // Particles
+  (function(){const c=document.getElementById('particle-canvas');const ctx=c.getContext('2d');let W,H,p=[];function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}resize();window.addEventListener('resize',resize);for(let i=0;i<80;i++)p.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.5+0.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()});function draw(){ctx.clearRect(0,0,W,H);p.forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,Math.PI*2);ctx.fillStyle=`rgba(108,99,255,${q.a*.6})`;ctx.fill();q.x+=q.dx;q.y+=q.dy;q.a+=(Math.random()-.5)*.02;q.a=Math.max(.1,Math.min(1,q.a));if(q.x<0)q.x=W;if(q.x>W)q.x=0;if(q.y<0)q.y=H;if(q.y>H)q.y=0;});requestAnimationFrame(draw);}draw();})();
+</script>
+</body>
+</html>

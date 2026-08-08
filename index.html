@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEDHAS — Adaptive Neural Intelligence</title>
+  <meta name="description" content="MEDHAS is a next-generation AI voice assistant for chat, coding, file management, and device control." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Three.js + post-processing via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    /* ══════════════════════════════════════════════════════
+       DESIGN TOKENS — DARK THEME
+    ══════════════════════════════════════════════════════ */
+    :root {
+      --bg:             #050810;
+      --bg-2:           #080d1a;
+      --bg-card:        rgba(12, 18, 35, 0.7);
+      --bg-card-solid:  #0c1223;
+
+      --accent:         #6c63ff;
+      --accent-2:       #a78bfa;
+      --accent-3:       #38bdf8;
+      --accent-glow:    rgba(108, 99, 255, 0.4);
+      --accent-faint:   rgba(108, 99, 255, 0.08);
+
+      --text:           #e8eaf0;
+      --text-2:         rgba(200, 210, 230, 0.75);
+      --text-3:         rgba(180, 190, 215, 0.45);
+
+      --border:         rgba(108, 99, 255, 0.15);
+      --border-bright:  rgba(108, 99, 255, 0.4);
+      --border-subtle:  rgba(255, 255, 255, 0.06);
+
+      --nav-bg:         rgba(5, 8, 16, 0.85);
+
+      --mono:           'JetBrains Mono', 'Courier New', monospace;
+      --sans:           'Inter', sans-serif;
+
+      --radius-sm:      8px;
+      --radius:         14px;
+      --radius-lg:      20px;
+
+      --shadow:         0 8px 40px rgba(0,0,0,0.6);
+      --shadow-accent:  0 8px 40px rgba(108,99,255,0.25);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LIGHT THEME — clean whites + rich purple/violet
+    ══════════════════════════════════════════════════════ */
+    [data-theme="light"] {
+      --bg:             #f8f7ff;
+      --bg-2:           #f0eeff;
+      --bg-card:        rgba(255, 255, 255, 0.85);
+      --bg-card-solid:  #ffffff;
+
+      --accent:         #5b21fa;
+      --accent-2:       #7c3aed;
+      --accent-3:       #0ea5e9;
+      --accent-glow:    rgba(91, 33, 250, 0.25);
+      --accent-faint:   rgba(91, 33, 250, 0.06);
+
+      --text:           #0d0d1f;
+      --text-2:         rgba(20, 15, 50, 0.7);
+      --text-3:         rgba(20, 15, 50, 0.42);
+
+      --border:         rgba(91, 33, 250, 0.14);
+      --border-bright:  rgba(91, 33, 250, 0.38);
+      --border-subtle:  rgba(91, 33, 250, 0.08);
+
+      --nav-bg:         rgba(248, 247, 255, 0.9);
+
+      --shadow:         0 4px 24px rgba(91,33,250,0.08);
+      --shadow-accent:  0 8px 40px rgba(91,33,250,0.18);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RESET & BASE
+    ══════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.5s, color 0.5s;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; background: none; font: inherit; }
+
+    /* ══════════════════════════════════════════════════════
+       SCROLLBAR
+    ══════════════════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+    /* ══════════════════════════════════════════════════════
+       NAVIGATION TASKBAR
+    ══════════════════════════════════════════════════════ */
+    #navbar {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--nav-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 12px;
+      box-shadow: var(--shadow);
+      transition: background 0.4s, border-color 0.4s;
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 3px;
+      padding: 6px 16px;
+      margin-right: 8px;
+    }
+    .nav-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 8px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .nav-link {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-2);
+      padding: 7px 16px;
+      border-radius: 30px;
+      transition: color 0.2s, background 0.2s;
+      letter-spacing: 0.3px;
+    }
+    .nav-link:hover { color: var(--text); background: var(--accent-faint); }
+    .nav-link.active { color: var(--accent); background: var(--accent-faint); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+    }
+    .nav-cta {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      padding: 7px 18px;
+      border-radius: 30px;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      letter-spacing: 0.3px;
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    [data-theme="light"] .nav-cta { color: #fff; }
+
+    /* Theme toggle inside nav */
+    .theme-toggle {
+      width: 40px; height: 22px;
+      background: var(--accent-faint);
+      border: 1px solid var(--border-bright);
+      border-radius: 11px;
+      display: flex; align-items: center;
+      padding: 2px;
+      cursor: pointer;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .toggle-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+    }
+    [data-theme="light"] .toggle-thumb { transform: translateX(18px); }
+
+    /* ══════════════════════════════════════════════════════
+       HERO SECTION
+    ══════════════════════════════════════════════════════ */
+    #hero {
+      position: relative;
+      height: 100vh;
+      min-height: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    [data-theme="light"] #hero {
+      background: linear-gradient(145deg, #0d0630 0%, #1a0a4a 25%, #12063a 50%, #0a1540 75%, #060e30 100%);
+    }
+
+    /* Gradient mesh background */
+    .hero-mesh {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-mesh::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(108,99,255,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(56,189,248,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 60% 10%, rgba(167,139,250,0.1) 0%, transparent 60%);
+    }
+    [data-theme="light"] .hero-mesh::before {
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(139,92,255,0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(56,189,248,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 60% 10%, rgba(167,139,250,0.28) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 40% at 50% 90%, rgba(91,33,250,0.2) 0%, transparent 60%);
+    }
+
+    /* 3D orb canvas */
+    #hero-orb-container {
+      position: absolute; inset: 0; z-index: 1;
+      background: transparent; pointer-events: none;
+    }
+    [data-theme="light"] #hero-orb-container { opacity: 0.85; }
+    #hero-orb-container canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    /* Vignette */
+    .hero-vignette {
+      position: absolute; inset: 0; pointer-events: none; z-index: 2;
+      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, var(--bg) 100%);
+    }
+    [data-theme="light"] .hero-vignette {
+      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, #060e30 100%);
+    }
+
+    /* Scan lines */
+    .hero-scanlines {
+      position: absolute; inset: 0; pointer-events: none; z-index: 3;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 4px);
+      opacity: 0.5;
+    }
+
+    /* Hero content */
+    .hero-content {
+      position: relative; z-index: 10;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 2rem;
+      animation: hero-in 1.2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes hero-in {
+      0% { opacity: 0; transform: translateY(40px); }
+      100% { opacity: 1; transform: none; }
+    }
+
+    /* Badge */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-faint);
+      border: 1px solid var(--border-bright);
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent-2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    /* Badge in light theme sits on dark hero — keep it bright */
+    [data-theme="light"] .hero-badge {
+      background: rgba(139,92,255,0.15);
+      border-color: rgba(167,139,250,0.5);
+      color: #c4b5fd;
+    }
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    /* Hero title */
+    .hero-title {
+      font-family: var(--sans);
+      font-size: clamp(4.5rem, 16vw, 12rem);
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg,
+        #c4b5fd 0%,
+        var(--accent) 30%,
+        var(--accent-3) 65%,
+        rgba(56,189,248,0.4) 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+      filter: drop-shadow(0 0 60px rgba(108,99,255,0.4));
+    }
+    [data-theme="light"] .hero-title {
+      background: linear-gradient(135deg,
+        #c4b5fd 0%,
+        #a78bfa 30%,
+        #38bdf8 65%,
+        rgba(56,189,248,0.6) 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 60px rgba(139,92,255,0.5));
+    }
+
+    /* Hero subtitle row */
+    .hero-sub-row {
+      display: flex; align-items: center; gap: 1.5rem;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1.8rem;
+    }
+    [data-theme="light"] .hero-sub-row { color: rgba(200, 180, 255, 0.6); }
+    [data-theme="light"] .hero-sub-row span { color: #a78bfa; }
+    .hero-sub-row span { color: var(--accent-2); }
+    .hero-sub-sep { width: 40px; height: 1px; background: var(--border-bright); }
+    [data-theme="light"] .hero-sub-sep { background: rgba(167,139,250,0.4); }
+
+    /* Hero description */
+    .hero-desc {
+      max-width: 520px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text-2);
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+    }
+    [data-theme="light"] .hero-desc { color: rgba(220, 210, 255, 0.85); }
+
+    /* Hero CTA */
+    .hero-cta {
+      display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 4rem;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      border-radius: var(--radius);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px var(--accent-glow);
+    }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px;
+      border: 1px solid var(--border-bright);
+      color: var(--text-2);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      border-radius: var(--radius);
+      background: var(--accent-faint);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, color 0.2s;
+    }
+    /* In light theme the hero is dark — keep outline btn bright */
+    [data-theme="light"] #hero .btn-outline {
+      border-color: rgba(167,139,250,0.55);
+      color: rgba(220,210,255,0.9);
+      background: rgba(139,92,255,0.1);
+    }
+    [data-theme="light"] #hero .btn-outline:hover {
+      border-color: #a78bfa;
+      color: #c4b5fd;
+      box-shadow: 0 4px 24px rgba(139,92,255,0.3);
+    }
+    .btn-outline:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      color: var(--accent-2);
+      box-shadow: 0 4px 20px var(--accent-faint);
+    }
+
+    /* Hero stats row */
+    .hero-stats {
+      display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;
+    }
+    .h-stat {
+      text-align: center;
+      padding: 16px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      backdrop-filter: blur(16px);
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    [data-theme="light"] .h-stat {
+      background: rgba(139, 92, 255, 0.12);
+      border: 1px solid rgba(139, 92, 255, 0.25);
+    }
+    [data-theme="light"] .h-stat:hover { border-color: rgba(139, 92, 255, 0.55); }
+    .h-stat:hover { border-color: var(--border-bright); transform: translateY(-3px); }
+    .h-stat-val {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-2);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    [data-theme="light"] .h-stat-val { color: #c4b5fd; }
+    .h-stat-label {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    [data-theme="light"] .h-stat-label { color: rgba(200, 180, 255, 0.55); }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute; bottom: 32px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .scroll-line {
+      width: 1px; height: 48px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      animation: scroll-bob 2s ease-in-out infinite;
+    }
+    @keyframes scroll-bob {
+      0%, 100% { opacity: 1; transform: scaleY(1); }
+      50% { opacity: 0.4; transform: scaleY(0.6); }
+    }
+    .scroll-text {
+      font-family: var(--mono); font-size: 9px;
+      color: var(--text-3); letter-spacing: 2px;
+      text-transform: uppercase; writing-mode: horizontal-tb;
+    }
+    [data-theme="light"] .scroll-text { color: rgba(200, 180, 255, 0.5); }
+    [data-theme="light"] .scroll-line { background: linear-gradient(to bottom, #a78bfa, transparent); }
+
+    /* HUD corners */
+    .hud-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 11; }
+    .hud-corner {
+      position: absolute; width: 24px; height: 24px;
+      border-color: var(--border-bright); border-style: solid; opacity: 0.5;
+    }
+    .hud-tl { top: 16px; left: 16px; border-width: 1px 0 0 1px; }
+    .hud-tr { top: 16px; right: 16px; border-width: 1px 1px 0 0; }
+    .hud-bl { bottom: 16px; left: 16px; border-width: 0 0 1px 1px; }
+    .hud-br { bottom: 16px; right: 16px; border-width: 0 1px 1px 0; }
+
+    /* ══════════════════════════════════════════════════════
+       PAGE CONTENT
+    ══════════════════════════════════════════════════════ */
+    .page-content {
+      background: var(--bg);
+      position: relative; z-index: 20;
+      transition: background 0.5s;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SECTION HEADER
+    ══════════════════════════════════════════════════════ */
+    .sec-wrap {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .sec-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+    .sec-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .sec-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sec-sub {
+      margin-top: 0.8rem;
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 500px;
+      margin-left: auto; margin-right: auto;
+      line-height: 1.7;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       FEATURES SECTION
+    ══════════════════════════════════════════════════════ */
+    .features { padding: 7rem 2rem; }
+
+    /* Feature cards grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .feat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      padding: 2.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+      cursor: default;
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feat-card:hover { background: var(--bg-card-solid); }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-card.span-2 { grid-column: span 2; }
+
+    .feat-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: var(--accent-faint);
+      border: 1px solid var(--border-bright);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      margin-bottom: 1.4rem;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .feat-card:hover .feat-icon {
+      transform: scale(1.1);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .feat-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.01em;
+    }
+    .feat-card p {
+      font-size: 0.9rem;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+    .feat-tag {
+      display: inline-block;
+      margin-top: 1.2rem;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: var(--accent-faint);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+
+    /* Demo visual inside span-2 card */
+    .feat-visual {
+      margin-top: 1.5rem;
+      height: 120px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    [data-theme="light"] .feat-visual {
+      background: rgba(91,33,250,0.04);
+    }
+
+    /* Waveform */
+    .waveform { display: flex; gap: 5px; height: 60px; align-items: center; }
+    .w-bar {
+      width: 6px; background: var(--accent); border-radius: 3px;
+      box-shadow: 0 0 8px rgba(108,99,255,0.5);
+      animation: wv 1.2s ease-in-out infinite alternate;
+    }
+    .w-bar:nth-child(1){height:14px;animation-delay:0s}
+    .w-bar:nth-child(2){height:34px;animation-delay:0.12s}
+    .w-bar:nth-child(3){height:52px;animation-delay:0.24s}
+    .w-bar:nth-child(4){height:40px;animation-delay:0.08s}
+    .w-bar:nth-child(5){height:22px;animation-delay:0.35s}
+    .w-bar:nth-child(6){height:46px;animation-delay:0.18s}
+    .w-bar:nth-child(7){height:30px;animation-delay:0.45s}
+    .w-bar:nth-child(8){height:18px;animation-delay:0.28s}
+    @keyframes wv { 0%{transform:scaleY(0.15)} 100%{transform:scaleY(1)} }
+
+    /* Terminal mini */
+    .mini-terminal {
+      width: 90%; font-family: var(--mono); font-size: 11px;
+      color: var(--text-2);
+    }
+    .t-line { margin-bottom: 5px; display: flex; gap: 8px; }
+    .t-prompt { color: var(--accent); }
+    .cursor-blink {
+      display: inline-block; width: 6px; height: 12px;
+      background: var(--accent); vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50%{opacity:0} }
+
+    /* Voice ring */
+    .voice-ring {
+      width: 70px; height: 70px; border-radius: 50%;
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: 0 0 24px var(--accent-glow);
+      animation: mic-pulse 2.5s ease-in-out infinite;
+    }
+    .voice-ring::before {
+      content: '';
+      position: absolute; inset: -12px; border-radius: 50%;
+      border: 1px solid rgba(108,99,255,0.3);
+      animation: mic-pulse 2.5s ease-in-out infinite 0.4s;
+    }
+    .voice-ring::after {
+      content: '';
+      position: absolute; inset: -24px; border-radius: 50%;
+      border: 1px solid rgba(108,99,255,0.15);
+      animation: mic-pulse 2.5s ease-in-out infinite 0.8s;
+    }
+    .voice-core { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); }
+    @keyframes mic-pulse {
+      0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}
+      50%{box-shadow:0 0 16px 6px transparent}
+    }
+
+    /* ══════════════════════════════════════════════════════
+       HOW IT WORKS
+    ══════════════════════════════════════════════════════ */
+    .how-it-works { padding: 7rem 2rem; background: var(--bg-2); }
+    [data-theme="light"] .how-it-works { background: #f0eeff; }
+
+    .steps-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-top: 4rem;
+    }
+    .step-card {
+      padding: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      position: relative;
+      transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .step-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--border-bright);
+      box-shadow: var(--shadow-accent);
+    }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 1rem;
+    }
+    .step-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; }
+    .step-card p { font-size: 0.88rem; color: var(--text-2); line-height: 1.7; }
+    .step-connector {
+      display: none;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       ROADMAP
+    ══════════════════════════════════════════════════════ */
+    .roadmap { padding: 7rem 2rem; }
+    .timeline {
+      position: relative;
+      margin-top: 4rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute; top: 0; bottom: 0; left: 50%;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      transform: translateX(-50%);
+    }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 1fr 48px 1fr;
+      gap: 0;
+      margin-bottom: 2.5rem;
+      align-items: start;
+    }
+    .timeline-item:nth-child(even) .ti-content { grid-column: 3; grid-row: 1; }
+    .timeline-item:nth-child(even) .ti-dot    { grid-column: 2; grid-row: 1; }
+    .timeline-item:nth-child(even) .ti-empty  { grid-column: 1; grid-row: 1; }
+
+    .ti-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .ti-content:hover {
+      border-color: var(--border-bright);
+      box-shadow: var(--shadow-accent);
+    }
+    .ti-dot {
+      display: flex; align-items: flex-start; justify-content: center;
+      padding-top: 1.6rem;
+    }
+    .ti-dot-inner {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .ti-empty {}
+    .ti-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .ti-desc  { font-size: 0.87rem; color: var(--text-2); line-height: 1.6; margin-bottom: 0.8rem; }
+
+    .badge {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 3px 10px; border-radius: 30px; white-space: nowrap;
+    }
+    .badge-live    { background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .badge-indev   { background: rgba(251,191,36,0.1);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-planned { background: var(--accent-faint);   color: var(--text-3); border: 1px solid var(--border); }
+
+    /* ══════════════════════════════════════════════════════
+       FAQ
+    ══════════════════════════════════════════════════════ */
+    .faq { padding: 7rem 2rem; background: var(--bg-2); }
+    [data-theme="light"] .faq { background: #f0eeff; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 0.75rem; max-width: 780px; margin: 4rem auto 0; }
+    details.faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    details.faq-item[open] {
+      border-color: var(--border-bright);
+      box-shadow: 0 4px 24px var(--accent-faint);
+    }
+    .faq-q {
+      font-size: 0.95rem; font-weight: 600; color: var(--text);
+      padding: 1.2rem 1.5rem; cursor: pointer; list-style: none;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: color 0.2s;
+      user-select: none;
+    }
+    .faq-q::-webkit-details-marker, .faq-q::marker { display:none; content:''; }
+    .faq-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--accent-faint); border: 1px solid var(--border-bright);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--accent); flex-shrink: 0;
+      transition: background 0.2s, transform 0.3s;
+    }
+    details[open] .faq-icon { background: var(--accent); color: #fff; transform: rotate(45deg); }
+    .faq-q:hover { color: var(--accent); }
+    .faq-a {
+      padding: 0 1.5rem 1.2rem;
+      font-size: 0.9rem; color: var(--text-2); line-height: 1.75;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1rem;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       WAITLIST CTA
+    ══════════════════════════════════════════════════════ */
+    .waitlist {
+      padding: 8rem 2rem;
+      text-align: center;
+      position: relative; overflow: hidden;
+      background: var(--bg);
+    }
+    .waitlist-glow {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 350px;
+      background: radial-gradient(ellipse, var(--accent-faint) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .waitlist-inner {
+      position: relative; z-index: 1;
+      max-width: 700px; margin: 0 auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 4rem 3rem;
+      backdrop-filter: blur(20px);
+    }
+    [data-theme="light"] .waitlist-inner {
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 8px 48px rgba(91,33,250,0.1);
+    }
+    .waitlist-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.8rem;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .waitlist-sub { font-size: 1rem; color: var(--text-2); margin-bottom: 2.5rem; line-height: 1.6; }
+    .waitlist-form {
+      display: flex; gap: 0.75rem; max-width: 440px; margin: 0 auto;
+    }
+    .form-input {
+      flex: 1; background: var(--bg);
+      border: 1px solid var(--border-bright);
+      color: var(--text); padding: 13px 16px;
+      border-radius: var(--radius-sm); font-family: var(--sans);
+      font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    [data-theme="light"] .form-input { background: #fff; }
+    .form-input::placeholder { color: var(--text-3); }
+    .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+    .btn-submit {
+      background: var(--accent); color: #fff;
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+    .waitlist-trust {
+      display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+      margin-top: 1.8rem; flex-wrap: wrap;
+    }
+    .trust-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .trust-icon { color: var(--accent-2); font-size: 14px; }
+
+    /* ══════════════════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════════════════ */
+    footer {
+      padding: 2.5rem 2rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: var(--bg);
+    }
+    .footer-brand {
+      font-family: var(--mono); font-size: 13px;
+      font-weight: 700; color: var(--accent); letter-spacing: 2px;
+    }
+    .footer-links {
+      display: flex; gap: 2rem;
+    }
+    .footer-links a {
+      font-size: 12px; color: var(--text-3);
+      transition: color 0.2s; letter-spacing: 0.5px;
+    }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-copy {
+      font-family: var(--mono); font-size: 10px;
+      color: var(--text-3); letter-spacing: 1px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SCROLL REVEAL
+    ══════════════════════════════════════════════════════ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.in { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 100ms; }
+    .reveal-delay-2 { transition-delay: 200ms; }
+    .reveal-delay-3 { transition-delay: 300ms; }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .feat-card.span-2 { grid-column: span 2; }
+      .steps-row { grid-template-columns: 1fr; }
+      .timeline::before { left: 24px; }
+      .timeline-item { grid-template-columns: 48px 1fr; }
+      .timeline-item:nth-child(even) .ti-content { grid-column: 2; }
+      .timeline-item:nth-child(even) .ti-dot { grid-column: 1; }
+      .ti-empty { display: none; }
+    }
+    @media (max-width: 640px) {
+      #navbar { top: 8px; padding: 6px 8px; }
+      .nav-links { display: none; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .feat-card.span-2 { grid-column: span 1; }
+      .hero-title { font-size: clamp(3.5rem, 22vw, 8rem); }
+      .hero-stats { gap: 0.75rem; }
+      .h-stat { padding: 12px 16px; }
+      .waitlist-form { flex-direction: column; }
+      .waitlist-inner { padding: 2.5rem 1.5rem; }
+      footer { justify-content: center; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════
+       NAVIGATION TASKBAR
+  ══════════════════════════════════════ -->
+  <nav id="navbar" aria-label="Main navigation">
+    <div class="nav-logo">MEDHAS</div>
+    <div class="nav-sep" aria-hidden="true"></div>
+    <div class="nav-links">
+      <a href="#hero"     class="nav-link active" id="nav-home">Home</a>
+      <a href="#features" class="nav-link" id="nav-features">Features</a>
+      <a href="#howitworks" class="nav-link" id="nav-how">How It Works</a>
+      <a href="#roadmap"  class="nav-link" id="nav-roadmap">Roadmap</a>
+      <a href="#faq"      class="nav-link" id="nav-faq">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <span class="toggle-thumb" id="toggleThumb">🌙</span>
+      </button>
+      <a href="signin.html" class="nav-cta">Get Access</a>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════
+       HERO
+  ══════════════════════════════════════ -->
+  <section id="hero" aria-label="Hero">
+    <div class="hero-mesh" aria-hidden="true"></div>
+    <div id="hero-orb-container" aria-hidden="true"></div>
+    <div class="hero-vignette" aria-hidden="true"></div>
+    <div class="hero-scanlines" aria-hidden="true"></div>
+
+    <!-- HUD corners -->
+    <div class="hud-overlay" aria-hidden="true">
+      <div class="hud-corner hud-tl"></div>
+      <div class="hud-corner hud-tr"></div>
+      <div class="hud-corner hud-bl"></div>
+      <div class="hud-corner hud-br"></div>
+    </div>
+
+    <!-- Hero content -->
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        AI Voice Assistant &nbsp;·&nbsp; v1.0.0
+      </div>
+
+      <h1 class="hero-title">MEDHAS</h1>
+
+      <div class="hero-sub-row">
+        <span>System</span>
+        <div class="hero-sub-sep"></div>
+        <span>AI Assistant</span>
+        <div class="hero-sub-sep"></div>
+        <span>Version 1.0.0</span>
+      </div>
+
+      <p class="hero-desc">
+        Voice-activated intelligence for chat, web search, coding, file management, and device control — all spoken aloud, always local, always fast.
+      </p>
+
+      <div class="hero-cta">
+        <a href="signin.html" class="btn-primary" id="hero-cta-primary">
+          <span>Get Early Access</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#features" class="btn-outline" id="hero-cta-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg>
+          <span>Explore Features</span>
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-val">&lt;80ms</div>
+          <div class="h-stat-label">Avg Response</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-val">99.99%</div>
+          <div class="h-stat-label">Uptime</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-val">128K</div>
+          <div class="h-stat-label">Context Window</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-val">100%</div>
+          <div class="h-stat-label">Local Privacy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator" aria-hidden="true">
+      <div class="scroll-line"></div>
+      <div class="scroll-text">Scroll</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       PAGE CONTENT
+  ══════════════════════════════════════ -->
+  <div class="page-content">
+
+    <!-- FEATURES -->
+    <section class="features" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="sec-wrap reveal">
+          <div class="sec-tag">// Core Capabilities</div>
+          <h2 class="sec-title" id="features-title">Everything you need,<br><em>spoken aloud</em></h2>
+          <p class="sec-sub">MEDHAS handles your most complex tasks through natural voice interaction — no commands to memorize, no UI to click.</p>
+        </div>
+
+        <div class="feature-grid reveal">
+          <!-- Card 1 — Chat & Search (span 2) -->
+          <div class="feat-card span-2">
+            <div class="feat-icon">🔍</div>
+            <h3>Chat &amp; Web Search</h3>
+            <p>Ask anything. MEDHAS processes live web searches and complex conversations instantly, delivering clear spoken answers — no walls of text, no waiting.</p>
+            <div class="feat-visual">
+              <div class="waveform">
+                <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+                <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+                <div class="w-bar"></div><div class="w-bar"></div>
+              </div>
+            </div>
+            <span class="feat-tag">MODULE: SEARCH-NET-v2</span>
+          </div>
+
+          <!-- Card 2 — Voice -->
+          <div class="feat-card">
+            <div class="feat-icon">🎙️</div>
+            <h3>Real-Time Voice Conversation</h3>
+            <p>Seamlessly interrupt, pause, and converse naturally. Wake word activation keeps MEDHAS always ready without any button press.</p>
+            <div class="feat-visual">
+              <div class="voice-ring"><div class="voice-core"></div></div>
+            </div>
+            <span class="feat-tag">WAKE WORD: HEY MEDHAS</span>
+          </div>
+
+          <!-- Card 3 — Coding -->
+          <div class="feat-card">
+            <div class="feat-icon">💻</div>
+            <h3>Autonomous Coding Help</h3>
+            <p>Your voice-driven pair programmer. Review code, scaffold projects, debug issues, and run terminal commands — all hands-free.</p>
+            <div class="feat-visual">
+              <div class="mini-terminal">
+                <div class="t-line"><span class="t-prompt">›</span> <span>Initializing MEDHAS IDE…</span></div>
+                <div class="t-line"><span class="t-prompt">›</span> <span>Analyzing repo structure…</span></div>
+                <div class="t-line"><span class="t-prompt">›</span> <span>Patching vuln_heap.c<span class="cursor-blink"></span></span></div>
+              </div>
+            </div>
+            <span class="feat-tag">CONTEXT: 128K TOKENS</span>
+          </div>
+
+          <!-- Card 4 — Vision -->
+          <div class="feat-card">
+            <div class="feat-icon">👁️</div>
+            <h3>Vision &amp; Screen Understanding</h3>
+            <p>Point to a graph, share your screen, or describe what you see. MEDHAS perceives visual context to answer questions about your display.</p>
+            <span class="feat-tag">MODULE: VISION-CORE</span>
+          </div>
+
+          <!-- Card 5 — File & Device -->
+          <div class="feat-card">
+            <div class="feat-icon">🗂️</div>
+            <h3>File &amp; Device Control</h3>
+            <p>Manage local files, open applications, and control OS settings natively with a simple voice command. No cloud required.</p>
+            <span class="feat-tag">PRIVACY: FULLY LOCAL</span>
+          </div>
+
+          <!-- Card 6 — Multi-Agent -->
+          <div class="feat-card">
+            <div class="feat-icon">🤖</div>
+            <h3>Multi-Agent Orchestration</h3>
+            <p>Dispatch background agents for long-running tasks — web scraping, document summarization, codebase analysis — while you stay in the conversation.</p>
+            <span class="feat-tag">COMING SOON</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="howitworks" aria-labelledby="how-title">
+      <div class="container">
+        <div class="sec-wrap reveal">
+          <div class="sec-tag">// How It Works</div>
+          <h2 class="sec-title" id="how-title">Three steps.<br><em>Infinite possibilities.</em></h2>
+        </div>
+
+        <div class="steps-row">
+          <div class="step-card reveal">
+            <div class="step-num">01 — LISTEN</div>
+            <h3>Wake Word Detected</h3>
+            <p>Say "Hey MEDHAS" and the local speech engine activates instantly. No button presses, no apps to open — always listening, always private.</p>
+          </div>
+          <div class="step-card reveal reveal-delay-1">
+            <div class="step-num">02 — THINK</div>
+            <h3>Neural Routing</h3>
+            <p>MEDHAS classifies your intent and routes simple tasks locally, forwarding complex reasoning to an encrypted edge mesh when needed — in milliseconds.</p>
+          </div>
+          <div class="step-card reveal reveal-delay-2">
+            <div class="step-num">03 — ACT</div>
+            <h3>Spoken Response &amp; Action</h3>
+            <p>A natural voice response is synthesized and delivered. Parallel to that, any actions — file ops, code edits, searches — execute simultaneously.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section class="roadmap" id="roadmap" aria-labelledby="roadmap-title">
+      <div class="container">
+        <div class="sec-wrap reveal">
+          <div class="sec-tag">// Development Roadmap</div>
+          <h2 class="sec-title" id="roadmap-title">Built in the open,<br><em>shipping fast.</em></h2>
+        </div>
+
+        <div class="timeline">
+          <!-- Item 1 -->
+          <div class="timeline-item reveal">
+            <div class="ti-content">
+              <div class="ti-title">Voice &amp; Logic Core</div>
+              <div class="ti-desc">Real-time local speech-to-text inference with sub-80ms latency.</div>
+              <span class="badge badge-live">Live</span>
+            </div>
+            <div class="ti-dot"><div class="ti-dot-inner"></div></div>
+            <div class="ti-empty"></div>
+          </div>
+          <!-- Item 2 -->
+          <div class="timeline-item reveal">
+            <div class="ti-empty"></div>
+            <div class="ti-dot"><div class="ti-dot-inner"></div></div>
+            <div class="ti-content">
+              <div class="ti-title">IDE Integration</div>
+              <div class="ti-desc">Native extension for VS Code and Cursor with full context awareness.</div>
+              <span class="badge badge-live">Live</span>
+            </div>
+          </div>
+          <!-- Item 3 -->
+          <div class="timeline-item reveal">
+            <div class="ti-content">
+              <div class="ti-title">Screen Vision Protocol</div>
+              <div class="ti-desc">Continuous context from active displays, updated in real-time.</div>
+              <span class="badge badge-indev">In Dev</span>
+            </div>
+            <div class="ti-dot"><div class="ti-dot-inner"></div></div>
+            <div class="ti-empty"></div>
+          </div>
+          <!-- Item 4 -->
+          <div class="timeline-item reveal">
+            <div class="ti-empty"></div>
+            <div class="ti-dot"><div class="ti-dot-inner"></div></div>
+            <div class="ti-content">
+              <div class="ti-title">Multi-Agent Swarm</div>
+              <div class="ti-desc">Background agents for long-running tasks with live status reporting.</div>
+              <span class="badge badge-planned">Planned</span>
+            </div>
+          </div>
+          <!-- Item 5 -->
+          <div class="timeline-item reveal">
+            <div class="ti-content">
+              <div class="ti-title">Mobile Companion</div>
+              <div class="ti-desc">iOS &amp; Android sync with desktop MEDHAS for seamless cross-device continuity.</div>
+              <span class="badge badge-planned">Planned</span>
+            </div>
+            <div class="ti-dot"><div class="ti-dot-inner"></div></div>
+            <div class="ti-empty"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="sec-wrap reveal">
+          <div class="sec-tag">// Frequently Asked</div>
+          <h2 class="sec-title" id="faq-title">Got <em>questions?</em></h2>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item reveal" id="faq-1">
+            <summary class="faq-q">
+              How does local vs cloud routing work?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </summary>
+            <div class="faq-a">MEDHAS runs a lightweight router on-device. Simple tasks — file management, OS control, wake word detection — execute entirely locally. Complex reasoning is forwarded to our encrypted mesh network only when needed, with zero data stored.</div>
+          </details>
+          <details class="faq-item reveal reveal-delay-1" id="faq-2">
+            <summary class="faq-q">
+              What data does MEDHAS collect?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </summary>
+            <div class="faq-a">Zero. We practice strict zero-logging. Voice audio is processed locally and never stored. Cloud requests are AES-256 encrypted end-to-end and purged immediately after the session ends.</div>
+          </details>
+          <details class="faq-item reveal reveal-delay-2" id="faq-3">
+            <summary class="faq-q">
+              Which devices are supported?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </summary>
+            <div class="faq-a">MEDHAS runs natively on macOS (M1/M2/M3/Intel) and Windows 11. Linux support is currently in closed beta.</div>
+          </details>
+          <details class="faq-item reveal reveal-delay-3" id="faq-4">
+            <summary class="faq-q">
+              Is it free?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </summary>
+            <div class="faq-a">The core local model is free, forever. The ultra-fast cloud reasoning layer — for heavy code analysis and real-time web search — requires a MEDHAS+ subscription at a competitive rate.</div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- WAITLIST -->
+    <section class="waitlist" id="waitlist" aria-labelledby="waitlist-title">
+      <div class="waitlist-glow" aria-hidden="true"></div>
+      <div class="waitlist-inner reveal">
+        <div class="hero-badge" style="margin: 0 auto 1.5rem;">
+          <span class="badge-dot"></span>
+          Limited Early Access
+        </div>
+        <h2 class="waitlist-title" id="waitlist-title">Ready to meet MEDHAS?</h2>
+        <p class="waitlist-sub">Join hundreds of developers and power users getting early access. No spam — just your invite when it's ready.</p>
+        <form class="waitlist-form" id="waitlistForm" aria-label="Waitlist signup form">
+          <input type="email" class="form-input" placeholder="your@email.com" required id="emailInput" autocomplete="email" />
+          <button type="submit" class="btn-submit" id="submitBtn">Request Access</button>
+        </form>
+        <div class="waitlist-trust">
+          <div class="trust-item"><span class="trust-icon">🔒</span> Zero spam</div>
+          <div class="trust-item"><span class="trust-icon">🎯</span> Invite only</div>
+          <div class="trust-item"><span class="trust-icon">✨</span> Free tier available</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer role="contentinfo">
+      <div class="footer-brand">M.E.D.H.A.S</div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#faq">FAQ</a>
+        <a href="#waitlist">Early Access</a>
+      </div>
+      <div class="footer-copy">© 2026 · All systems nominal</div>
+    </footer>
+
+  </div><!-- /page-content -->
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // ── Scroll reveal ──
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+      }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+      // ── Active nav link on scroll ──
+      const sections = ['hero','features','howitworks','roadmap','faq','waitlist'];
+      const navMap = { hero: 'nav-home', features: 'nav-features', howitworks: 'nav-how', roadmap: 'nav-roadmap', faq: 'nav-faq' };
+      const navObserver = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const id = navMap[e.target.id];
+            if (id) document.getElementById(id)?.classList.add('active');
+          }
+        });
+      }, { threshold: 0.3 });
+      sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) navObserver.observe(el);
+      });
+
+      // ── Navbar scroll style ──
+      const navbar = document.getElementById('navbar');
+      window.addEventListener('scroll', () => {
+        navbar.style.boxShadow = window.scrollY > 20
+          ? '0 8px 40px rgba(0,0,0,0.4)'
+          : '';
+      }, { passive: true });
+
+      // ── FAQ icon ──
+      document.querySelectorAll('.faq-item').forEach(item => {
+        const icon = item.querySelector('.faq-icon');
+        item.addEventListener('toggle', () => {
+          icon.textContent = item.open ? '×' : '+';
+        });
+      });
+
+      // ── Waitlist form ──
+      document.getElementById('waitlistForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = document.getElementById('emailInput').value;
+        const name = email.split('@')[0].toUpperCase();
+        this.innerHTML = `
+          <div style="text-align:center;padding:1rem 0;">
+            <div style="font-size:2rem;margin-bottom:0.8rem">✅</div>
+            <p style="font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:0.4rem">You're on the list, ${name}!</p>
+            <p style="font-size:0.9rem;color:var(--text-2)">We'll send your invite to <strong>${email}</strong> soon.</p>
+          </div>`;
+      });
+    });
+
+    // ── Theme toggle ──
+    const html = document.documentElement;
+    const toggleBtn = document.getElementById('themeToggle');
+    const thumb = document.getElementById('toggleThumb');
+
+    const saved = localStorage.getItem('medhas-theme');
+    if (saved) {
+      html.setAttribute('data-theme', saved);
+      thumb.textContent = saved === 'light' ? '☀️' : '🌙';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      thumb.textContent = next === 'light' ? '☀️' : '🌙';
+      localStorage.setItem('medhas-theme', next);
+    });
+  </script>
+</body>
+</html>

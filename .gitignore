@@ -1,0 +1,14 @@
+# Environment — never commit real keys
+.env
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local SQLite database (swap for Firestore later)
+medhas.db*
+
