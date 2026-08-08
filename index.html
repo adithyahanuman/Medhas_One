@@ -1430,6 +1430,17 @@
         try {
           if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
             splineViewer.spline._scene.background = null;
+            splineViewer.spline._scene.traverse((obj) => {
+              if (obj.name && (
+                obj.name.toLowerCase().includes('mouse') || 
+                obj.name.toLowerCase().includes('move') || 
+                obj.name.toLowerCase().includes('text') ||
+                obj.isText || obj.type === 'Text'
+              )) {
+                obj.visible = false;
+                obj.scale.set(0, 0, 0);
+              }
+            });
           }
           if (splineViewer && splineViewer.shadowRoot) {
             const cv = splineViewer.shadowRoot.querySelector('canvas');
@@ -1437,7 +1448,7 @@
           }
         } catch(e) {}
       }
-      setInterval(clearHeroSplineBg, 150);
+      setInterval(clearHeroSplineBg, 100);
 
       if (splineViewer) {
         const startRotation = () => {
