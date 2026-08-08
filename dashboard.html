@@ -961,9 +961,9 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- Spline Particle Effects Background Layer -->
-<div id="spline-particles-container" style="position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.85;">
-  <spline-viewer url="./dashboard_particles.splinecode" loading-anim-type="spinner" style="width:100%; height:100%; display:block; background:transparent;"></spline-viewer>
+<!-- Spline 3D Background Layer (scene_new.splinecode) -->
+<div id="spline-particles-container" style="position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.9;">
+  <spline-viewer url="./scene_new.splinecode" loading-anim-type="spinner" style="width:100%; height:100%; display:block; background:transparent;"></spline-viewer>
 </div>
 
 <!-- Orb -->
@@ -1667,288 +1667,13 @@ function showToast(msg,ms=2800){
 setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList.add('visible')); }, 2000);
 </script>
 
-<script type="module">
-import { Assistant }          from './assistant.js';
-import { TTSEngine }           from './tts.js';
-import { SubtitleController }  from './subtitle.js';
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// GLOBAL FUNCTIONS — All onclick= handlers MUST be here (plain <script>, not module)
+// ════════════════════════════════════════════════════════════════════════════
 
-const orb = {
-  setConversationState(state, amp = 0) {
-    window.setOrbState?.(state, amp);
-  },
-};
-
-const tts      = new TTSEngine();
-const subtitle = new SubtitleController('#subtitle-words');
-
-const assistant = new Assistant({
-  orb,
-  tts,
-  subtitle,
-
-  onStateChange(state) {
-    window.__currentState = state;
-    _applyUIState(state);
-  },
-
-  onError(code, msg) {
-    if (code === 'speech-recognition-unsupported') {
-      _disableMic(msg);
-    } else {
-      showToast(msg, 4000);
-    }
-    _resetMicBtn();
-  },
-
-  onUserTranscript(text) {
-    addToHistory('user', text);
-    _incQueryCount();
-  },
-
-  onInterimTranscript(text) {
-    const inp = document.getElementById('chat-input');
-    if (inp) {
-      inp.value = text;
-      inp.style.height = 'auto';
-      inp.style.height = Math.min(inp.scrollHeight, 200) + 'px';
-      const sendBtn = document.getElementById('send-btn');
-      if (sendBtn) sendBtn.disabled = false;
-    }
-  },
-
-  onAIReply(text) {
-    addToHistory('ai', text);
-    showBubble(text);
-  },
-
-  onSessionChange({ session, isNew, messages }) {
-    window._activeSessionId = session.id;
-    if (typeof _loadSessionList === 'function') _loadSessionList();
-
-    const hist = document.getElementById('chat-history');
-    if (hist && messages && Array.isArray(messages)) {
-      hist.innerHTML = '';
-      for (const msg of messages) {
-        const el = document.createElement('div');
-        const ts = new Date(msg.created_at || Date.now()).toTimeString().slice(0, 5);
-        el.className = 'ch-msg ' + msg.role;
-        el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
-        hist.appendChild(el);
-      }
-      hist.scrollTop = hist.scrollHeight;
-    }
-  },
-});
-
-window.assistant = assistant;
-
-// ── UI state driver ───────────────────────────────────────────────────────────
-const STATE_LABELS = { idle: 'Standby', listening: 'Listening…', thinking: 'Thinking…', speaking: 'Speaking' };
-const STATE_OVERLAYS = {
-  idle:      '',
-  listening: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(56,189,248,0.08) 0%, transparent 70%)',
-  thinking:  'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(108,99,255,0.10) 0%, transparent 70%)',
-  speaking:  'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(127,232,255,0.10) 0%, transparent 70%)',
-};
-
-function _applyUIState(state) {
-  const dot  = document.getElementById('state-dot');
-  const txt  = document.getElementById('state-text');
-  const tbSt = document.getElementById('tb-state');
-
-  if (dot)  { dot.className  = `state-dot ${state}`; }
-  if (tbSt) { tbSt.className = `tb-state ${state}`; }
-  if (txt)  { txt.textContent = STATE_LABELS[state] ?? state; }
-
-  const overlay = document.getElementById('state-overlay');
-  if (overlay) overlay.style.background = STATE_OVERLAYS[state] ?? '';
-
-  // Pulse rings
-  document.querySelectorAll('.pulse-ring').forEach(r => {
-    r.classList.remove('active', 'speaking', 'listening');
-    if (state === 'speaking')  r.classList.add('active', 'speaking');
-    if (state === 'listening') r.classList.add('active', 'listening');
-  });
-
-  // Thinking indicator
-  state === 'thinking' ? showThinking() : hideThinking();
-
-  // Stop button visibility
-  const stopBtn = document.getElementById('stop-btn');
-  if (stopBtn) {
-    stopBtn.style.display = (state === 'thinking' || state === 'speaking') ? 'inline-flex' : 'none';
-  }
-
-  // Reset mic button (unless we're now listening)
-  if (state !== 'listening') _resetMicBtn();
-
-  // Hide bubble when returning to idle from non-speaking state
-  if (state === 'idle') {
-    setTimeout(hideBubble, 600);
-  }
-}
-
-window.stopAI = function() {
-  window.assistant?.stop();
-  const stopBtn = document.getElementById('stop-btn');
-  if (stopBtn) stopBtn.style.display = 'none';
-  showToast('AI response stopped');
-};
-
-window.clearCurrentChat = async function() {
-  if (window.assistant) {
-    await window.assistant.deleteCurrentSession();
-  }
-  const hist = document.getElementById('chat-history');
-  if (hist) {
-    hist.innerHTML = '<div class="ch-empty">Chat history cleared.</div>';
-  }
-  if (typeof _loadSessionList === 'function') _loadSessionList();
-  showToast('Chat history deleted');
-};
-
-// ── Dashboard Spline Particles continuous rotation & transparent theme setup ──
-const dashSplineViewer = document.querySelector('#spline-particles-container spline-viewer');
-if (dashSplineViewer) {
-  const startDashRotate = () => {
-    try {
-      const spline = dashSplineViewer.spline;
-      if (spline && spline._scene) {
-        spline._scene.background = null;
-        let angle = 0;
-        const rotateLoop = () => {
-          angle += 0.004;
-          if (spline._scene) spline._scene.rotation.y = angle;
-          requestAnimationFrame(rotateLoop);
-        };
-        rotateLoop();
-      }
-    } catch(e) {}
-  };
-  dashSplineViewer.addEventListener('load', startDashRotate);
-  setTimeout(startDashRotate, 2000);
-}
-
-// ── Mic helpers ───────────────────────────────────────────────────────────────
-function _resetMicBtn() {
-  const btn = document.getElementById('mic-btn');
-  if (!btn) return;
-  btn.classList.remove('active');
-  btn.disabled = false;
-  btn.style.opacity = '';
-  btn.style.cursor  = '';
-}
-
-let _micDisabled = false;
-function _disableMic(msg) {
-  if (_micDisabled) return;
-  _micDisabled = true;
-  const btn = document.getElementById('mic-btn');
-  if (btn) {
-    btn.disabled = true;
-    btn.title    = msg;
-    btn.style.opacity = '0.3';
-    btn.style.cursor  = 'not-allowed';
-  }
-  const note = document.getElementById('mic-unsupported-note');
-  if (note) note.style.display = 'block';
-}
-
-// ── Query counter ─────────────────────────────────────────────────────────────
-function _incQueryCount() {
-  const el = document.getElementById('fc-q-val');
-  if (el) el.textContent = (+el.textContent || 0) + 1;
-}
-
-// ── Session management ────────────────────────────────────────────────────────
-async function _loadSessionList() {
-  try {
-    const hasBackend = !location.hostname.endsWith('github.io') || window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url');
-    if (!hasBackend) {
-      const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
-      window.renderSessionList(localSessions, window._activeSessionId);
-      return;
-    }
-    const origin = window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url') || ((location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin);
-    const res  = await fetch(`${origin}/api/sessions`);
-    if (!res.ok) throw new Error('Server unavailable');
-    const { sessions } = await res.json();
-    window.renderSessionList(sessions, window._activeSessionId);
-  } catch (e) {
-    console.warn('[SessionList] Server fetch unavailable, loading local sessions:', e.message);
-    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
-    window.renderSessionList(localSessions, window._activeSessionId);
-  }
-}
-
-/** Create a fresh conversation */
-window.newChat = async () => {
-  window.assistant?.interrupt();
-  hideBubble();
-  const hist = document.getElementById('chat-history');
-  if (hist) hist.innerHTML = '<div class="ch-empty">New conversation started. Type a message below to begin!</div>';
-  document.getElementById('suggestions')?.classList.remove('hidden');
-  await window.assistant?.startNewSession();
-  showToast('New conversation started', 2000);
-};
-
-/** Click a session card — load that session's history into the right panel drawer */
-window.onSessionClick = async (sessionId) => {
-  if (sessionId === window._activeSessionId) return;
-  const result = await window.assistant?.loadSession(sessionId);
-  if (!result) { showToast('Could not load session', 3000); return; }
-
-  // Render messages in the right panel chat-history container
-  const hist = document.getElementById('chat-history');
-  if (hist) {
-    hist.innerHTML = '';
-    if (result.messages && result.messages.length) {
-      for (const msg of result.messages) {
-        const el  = document.createElement('div');
-        const ts  = new Date(msg.created_at || Date.now()).toTimeString().slice(0, 5);
-        el.className = 'ch-msg ' + msg.role;
-        el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
-        hist.appendChild(el);
-      }
-      hist.scrollTop = hist.scrollHeight;
-    } else {
-      hist.innerHTML = '<div class="ch-empty">No messages in this chat yet. Type a message below to start!</div>';
-    }
-  }
-  hideBubble();
-  showToast(`Loaded: "${result.session.title}"`, 2200);
-
-  const rp = document.getElementById('right-panel');
-  if (rp) {
-    rp.classList.add('open');
-  }
-};
-
-/** Delete a session */
-window.onSessionDelete = async (sessionId) => {
-  try {
-    if (!location.hostname.endsWith('github.io')) {
-      const origin = (location.protocol === 'file:' || !location.host)
-        ? 'http://localhost:3000' : location.origin;
-      await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
-    }
-    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]').filter(s => s.id !== sessionId);
-    localStorage.setItem('medhas_local_sessions', JSON.stringify(localSessions));
-    localStorage.removeItem(`medhas_msgs_${sessionId}`);
-
-    if (sessionId === window._activeSessionId) {
-      await window.newChat();
-    } else {
-      _loadSessionList();
-    }
-    showToast('Conversation deleted', 2000);
-  } catch (e) {
-    showToast('Could not delete session', 3000);
-  }
-};
-
-// ── Light / Dark Theme Toggle Controls ──────────────────────────────────────────
-function toggleTheme() {
+// ── Theme Toggle ─────────────────────────────────────────────────────────────
+window.toggleTheme = function() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
@@ -1957,257 +1682,493 @@ function toggleTheme() {
   localStorage.setItem('medhas_theme', next);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
-  showToast(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode activated`, 1500);
-}
-window.toggleTheme = toggleTheme;
+  window.showToast(`${next === 'light' ? 'Light' : 'Dark'} Mode`, 1200);
+};
 
-// Initialize saved theme immediately
-(function initTheme() {
+// Apply saved theme immediately
+(function() {
   const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
 })();
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// OVERRIDE GLOBAL ENTRY POINTS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ── Toast ─────────────────────────────────────────────────────────────────────
+window.showToast = function(msg, ms) {
+  ms = ms || 2800;
+  var t = document.getElementById('toast');
+  var tm = document.getElementById('toast-msg');
+  if (tm) tm.textContent = msg;
+  if (t) {
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, ms);
+  }
+};
 
-/** Called by onclick="sendMessage()" and Enter key. */
-async function sendMessage() {
-  const inp  = document.getElementById('chat-input');
-  const text = (inp?.value ?? '').trim();
+// ── Panel Toggle ─────────────────────────────────────────────────────────────
+window.togglePanel = function(side) {
+  var panel = document.getElementById(side + '-panel');
+  if (panel) panel.classList.toggle('open');
+};
+
+// ── Chat history append ───────────────────────────────────────────────────────
+window.addToHistory = function(role, text) {
+  var hist = document.getElementById('chat-history');
+  if (!hist) return;
+  var empty = hist.querySelector('.ch-empty');
+  if (empty) empty.remove();
+  var now = new Date().toTimeString().slice(0, 5);
+  var el = document.createElement('div');
+  el.className = 'ch-msg ' + role;
+  el.innerHTML = '<div class="ch-sender">' + (role === 'user' ? 'You' : 'MEDHAS') + '</div>' +
+    '<div class="ch-text">' + text + '</div>' +
+    '<div class="ch-time">' + now + '</div>';
+  hist.appendChild(el);
+  hist.scrollTop = hist.scrollHeight;
+  var rp = document.getElementById('right-panel');
+  if (rp && !rp.classList.contains('open')) rp.classList.add('open');
+};
+
+// ── AI bubble show/hide ───────────────────────────────────────────────────────
+window.showBubble = function(text) {
+  var bt = document.getElementById('bubble-text');
+  if (bt) bt.textContent = text;
+  var bubble = document.getElementById('ai-bubble');
+  if (bubble) bubble.classList.add('visible');
+};
+window.hideBubble = function() {
+  var bubble = document.getElementById('ai-bubble');
+  if (bubble) bubble.classList.remove('visible');
+};
+
+// ── Thinking indicator ────────────────────────────────────────────────────────
+window.showThinking = function() {
+  var el = document.getElementById('thinking-ind');
+  if (el) el.classList.add('visible');
+};
+window.hideThinking = function() {
+  var el = document.getElementById('thinking-ind');
+  if (el) el.classList.remove('visible');
+};
+
+// ── Query counter ─────────────────────────────────────────────────────────────
+window._incQueryCount = function() {
+  var el = document.getElementById('fc-q-val');
+  if (el) el.textContent = (+el.textContent || 0) + 1;
+};
+
+// ── Send Message — CORE FUNCTION ──────────────────────────────────────────────
+window.sendMessage = function() {
+  var inp = document.getElementById('chat-input');
+  var text = inp ? inp.value.trim() : '';
   if (!text) return;
-  
   inp.value = '';
   inp.style.height = 'auto';
-  
-  const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) sendBtn.disabled = false;
+  window.hideBubble();
+  window.addToHistory('user', text);
+  window._incQueryCount();
+  var sugs = document.getElementById('suggestions');
+  if (sugs) sugs.classList.add('hidden');
 
-  hideBubble();
-  addToHistory('user', text);
-  _incQueryCount();
-  document.getElementById('suggestions')?.classList.add('hidden');
-
-  // If assistant controller is active, use its full pipeline
-  if (window.assistant && typeof window.assistant.submit === 'function') {
-    try {
-      window.assistant.submit(text);
-      return;
-    } catch(err) {
-      console.warn('[SendMessage] Assistant submit error, falling back:', err);
-    }
+  // Use assistant pipeline if available
+  if (window._assistant && typeof window._assistant.submit === 'function') {
+    try { window._assistant.submit(text); return; } catch(e) {}
   }
 
-  // Resilient direct fetch fallback
-  try {
-    const origin = (location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin;
-    const res = await fetch(`${origin}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const reply = data.reply || 'I am MEDHAS, your AI assistant.';
-      addToHistory('ai', reply);
-      if ('speechSynthesis' in window) {
-        const clean = reply.replace(/[*#`_\[\]]/g, '');
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
-      }
-    } else {
-      addToHistory('ai', 'Connected to MEDHAS AI. Ready for your command.');
+  // Direct fetch fallback — always works
+  window.showThinking();
+  var origin = (location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin;
+  fetch(origin + '/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    window.hideThinking();
+    var reply = data.reply || 'Hello! I am MEDHAS, your AI assistant.';
+    window.addToHistory('ai', reply);
+    window.showBubble(reply);
+    // Speak the reply
+    if ('speechSynthesis' in window) {
+      var clean = reply.replace(/[*#`_\[\]]/g, '');
+      window.speechSynthesis.cancel();
+      var utt = new SpeechSynthesisUtterance(clean);
+      window.speechSynthesis.speak(utt);
     }
-  } catch(e) {
-    console.error('[SendMessage] Direct fetch error:', e);
-    addToHistory('ai', 'I am here to help you. Ask me any question!');
-  }
-}
-window.sendMessage = sendMessage;
+  })
+  .catch(function(e) {
+    window.hideThinking();
+    window.addToHistory('ai', 'I am MEDHAS. Please check your connection and try again.');
+    console.error('[MEDHAS] fetch error:', e);
+  });
+};
 
-/** Called by onkeydown="handleKey(event)". */
-function handleKey(e) {
+// ── Handle Enter Key ─────────────────────────────────────────────────────────
+window.handleKey = function(e) {
   if (e && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     e.stopPropagation();
-    sendMessage();
+    window.sendMessage();
     return false;
   }
-}
-window.handleKey = handleKey;
-
-/** Called by onclick="toggleMic()". */
-function toggleMic() {
-  const btn = document.getElementById('mic-btn');
-  if (_micDisabled) {
-    showToast('Microphone input is disabled in browser settings', 2500);
-    return;
-  }
-  if (!window.assistant) {
-    showToast('Voice assistant initializing, please click again in a moment...', 2000);
-    return;
-  }
-
-  if (window.assistant.state === 'listening') {
-    window.assistant.stopListening();
-    _resetMicBtn();
-  } else if (window.assistant.state === 'idle') {
-    btn?.classList.add('active');
-    window.assistant.startListening();
-  } else {
-    window.assistant.interrupt();
-    _resetMicBtn();
-  }
-}
-window.toggleMic = toggleMic;
-
-/** Toggle globe button visually */
-window.toggleGlobe = (btn) => {
-  const label = document.getElementById('globe-label');
-  const isSearch = btn.classList.contains('active');
-  
-  if (isSearch) {
-    btn.classList.remove('active');
-    btn.style.borderColor = 'transparent';
-    btn.style.background = 'rgba(255,255,255,0.03)';
-    btn.style.color = 'rgba(180,190,215,0.5)';
-    if (label) { label.style.width = '0'; label.style.opacity = '0'; }
-  } else {
-    btn.classList.add('active');
-    btn.style.borderColor = '';
-    btn.style.background = '';
-    btn.style.color = '';
-    if (label) { label.style.width = 'auto'; label.style.opacity = '1'; }
-  }
 };
 
-/** Called by onclick="useSuggestion(this)" on chip clicks. */
-window.useSuggestion = (el) => {
-  const inp = document.getElementById('chat-input');
-  if (inp) {
-    inp.value = el.textContent;
-    window.onInputChange();
-  }
-  sendMessage();
-};
-
-/** Called by right-panel quick action buttons. */
-window.quickCmd = (text) => {
-  const inp = document.getElementById('chat-input');
-  if (inp) {
-    inp.value = text;
-    window.onInputChange();
-  }
-  sendMessage();
-};
-
-// oninput handler — show/hide suggestions based on input content
-window.onInputChange = () => {
-  const inp  = document.getElementById('chat-input');
-  const val  = inp?.value ?? '';
-  
+// ── onInputChange (textarea auto-resize + suggestions) ───────────────────────
+window.onInputChange = function() {
+  var inp = document.getElementById('chat-input');
   if (inp) {
     inp.style.height = 'auto';
     inp.style.height = Math.min(inp.scrollHeight, 200) + 'px';
   }
-  
-  const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) sendBtn.disabled = false;
-  
-  const sugs = document.getElementById('suggestions');
+  var val = inp ? inp.value : '';
+  var sugs = document.getElementById('suggestions');
   if (sugs) sugs.classList.toggle('hidden', val.length > 0);
 };
 
-// Image attachment file upload handler
-window.handleFileUpload = (e) => {
-  const file = e.target.files?.[0];
+// ── Suggestion chip click ─────────────────────────────────────────────────────
+window.useSuggestion = function(el) {
+  var inp = document.getElementById('chat-input');
+  if (inp) { inp.value = el.textContent; window.onInputChange(); }
+  window.sendMessage();
+};
+
+// ── Quick command ─────────────────────────────────────────────────────────────
+window.quickCmd = function(text) {
+  var inp = document.getElementById('chat-input');
+  if (inp) { inp.value = text; window.onInputChange(); }
+  window.sendMessage();
+};
+
+// ── Toggle Globe button ───────────────────────────────────────────────────────
+window.toggleGlobe = function(btn) {
+  var label = document.getElementById('globe-label');
+  var isActive = btn.classList.contains('active');
+  if (isActive) {
+    btn.classList.remove('active');
+    if (label) { label.style.width = '0'; label.style.opacity = '0'; }
+  } else {
+    btn.classList.add('active');
+    if (label) { label.style.width = 'auto'; label.style.opacity = '1'; }
+  }
+};
+
+// ── Mic toggle ────────────────────────────────────────────────────────────────
+var _micDisabled = false;
+var _recognition = null;
+var _micActive = false;
+
+window.toggleMic = function() {
+  if (_micDisabled) {
+    window.showToast('Microphone unavailable in this browser', 2500);
+    return;
+  }
+  // Use assistant mic if available
+  if (window._assistant) {
+    if (_micActive) {
+      window._assistant.stopListening && window._assistant.stopListening();
+    } else {
+      window._assistant.startListening && window._assistant.startListening();
+    }
+    _micActive = !_micActive;
+    var btn = document.getElementById('mic-btn');
+    if (btn) btn.classList.toggle('active', _micActive);
+    return;
+  }
+  // Fallback: direct SpeechRecognition
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    _micDisabled = true;
+    window.showToast('Voice input not supported in this browser. Use text.', 3000);
+    return;
+  }
+  if (_micActive) {
+    if (_recognition) _recognition.stop();
+    _micActive = false;
+    var btn2 = document.getElementById('mic-btn');
+    if (btn2) btn2.classList.remove('active');
+    return;
+  }
+  _recognition = new SR();
+  _recognition.continuous = false;
+  _recognition.interimResults = true;
+  _recognition.lang = 'en-US';
+  _recognition.onstart = function() {
+    _micActive = true;
+    var btn3 = document.getElementById('mic-btn');
+    if (btn3) btn3.classList.add('active');
+    window.showToast('Listening…', 2000);
+  };
+  _recognition.onresult = function(e) {
+    var inp = document.getElementById('chat-input');
+    var transcript = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    if (inp) { inp.value = transcript; window.onInputChange(); }
+    if (e.results[e.results.length - 1].isFinal) {
+      _micActive = false;
+      var btn4 = document.getElementById('mic-btn');
+      if (btn4) btn4.classList.remove('active');
+      window.sendMessage();
+    }
+  };
+  _recognition.onerror = function() {
+    _micActive = false;
+    var btn5 = document.getElementById('mic-btn');
+    if (btn5) btn5.classList.remove('active');
+  };
+  _recognition.onend = function() {
+    _micActive = false;
+    var btn6 = document.getElementById('mic-btn');
+    if (btn6) btn6.classList.remove('active');
+  };
+  _recognition.start();
+};
+
+// ── Stop AI ───────────────────────────────────────────────────────────────────
+window.stopAI = function() {
+  if (window._assistant) window._assistant.interrupt && window._assistant.interrupt();
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  window.hideThinking();
+  var stopBtn = document.getElementById('stop-btn');
+  if (stopBtn) stopBtn.style.display = 'none';
+  window.showToast('Stopped', 1000);
+};
+
+// ── New Chat ──────────────────────────────────────────────────────────────────
+window.newChat = async function() {
+  if (window._assistant) window._assistant.interrupt && window._assistant.interrupt();
+  window.hideBubble();
+  var hist = document.getElementById('chat-history');
+  if (hist) hist.innerHTML = '<div class="ch-empty">New conversation started. Type a message below!</div>';
+  var sugs = document.getElementById('suggestions');
+  if (sugs) sugs.classList.remove('hidden');
+  if (window._assistant && window._assistant.startNewSession) {
+    await window._assistant.startNewSession();
+  }
+  window.showToast('New conversation started', 1500);
+};
+
+// ── Clear current chat ────────────────────────────────────────────────────────
+window.clearCurrentChat = async function() {
+  if (window._assistant && window._assistant.deleteCurrentSession) {
+    await window._assistant.deleteCurrentSession();
+  }
+  var hist = document.getElementById('chat-history');
+  if (hist) hist.innerHTML = '<div class="ch-empty">Chat cleared. Start a new conversation!</div>';
+  window.showToast('Chat deleted', 1500);
+};
+
+// ── File upload ───────────────────────────────────────────────────────────────
+window.handleFileUpload = function(e) {
+  var file = e.target.files && e.target.files[0];
   if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    const dataUrl = evt.target.result;
-    const base64Str = dataUrl.split(',')[1];
-    const mimeType = file.type || 'image/jpeg';
-
-    addToHistory('user', `📷 Attached Image: <strong>${file.name}</strong>`);
-    _incQueryCount();
-    showToast(`Streaming image "${file.name}" to Live Session...`, 3000);
-    window.assistant?.submitImage(base64Str, mimeType);
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var base64 = evt.target.result.split(',')[1];
+    window.addToHistory('user', '📷 Image: <strong>' + file.name + '</strong>');
+    window._incQueryCount();
+    if (window._assistant && window._assistant.submitImage) {
+      window._assistant.submitImage(base64, file.type || 'image/jpeg');
+    }
   };
   reader.readAsDataURL(file);
 };
 
-// Clean exit teardown handler
-window.exitApp = (e) => {
-  e?.preventDefault();
-  showToast('Closing Live Session cleanly...', 1500);
-  window.assistant?.close();
-  setTimeout(() => {
-    window.location.href = 'signin.html';
-  }, 300);
+// ── Exit app ──────────────────────────────────────────────────────────────────
+window.exitApp = function(e) {
+  if (e) e.preventDefault();
+  if (window._assistant) window._assistant.close && window._assistant.close();
+  setTimeout(function() { window.location.href = 'signin.html'; }, 300);
 };
 
-// Event listeners wiring
-function initDashboardControls() {
-  const chatInput = document.getElementById('chat-input');
-  if (chatInput) {
-    chatInput.addEventListener('keydown', function(e) {
+// ── Session render ────────────────────────────────────────────────────────────
+window.renderSessionList = function(sessions, activeId) {
+  var list = document.getElementById('session-list');
+  if (!list) return;
+  if (!sessions || !sessions.length) {
+    list.innerHTML = '<div class="sess-empty">No previous conversations</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(function(s) {
+    return '<div class="sess-card' + (s.id === activeId ? ' active' : '') + '" onclick="window.onSessionClick && window.onSessionClick(\'' + s.id + '\')">' +
+      '<span class="sess-icon">💬</span>' +
+      '<div class="sess-info"><div class="sess-title">' + (s.title || 'Untitled') + '</div>' +
+      '<div class="sess-time">' + (s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '') + '</div></div>' +
+      '<button class="sess-del" onclick="event.stopPropagation(); window.onSessionDelete && window.onSessionDelete(\'' + s.id + '\')" title="Delete">✕</button>' +
+      '</div>';
+  }).join('');
+};
+
+// ── Wire up keyboard & button event listeners ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  // Enter key on textarea
+  var inp = document.getElementById('chat-input');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        sendMessage();
+        window.sendMessage();
         return false;
       }
     });
   }
 
-  const themeBtn = document.getElementById('theme-toggle-btn');
+  // Theme button
+  var themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) {
-    const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
-    themeBtn.textContent = saved === 'light' ? '☀️' : '🌙';
-    themeBtn.onclick = function(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      toggleTheme();
-    };
+    themeBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      window.toggleTheme();
+    });
+    var savedTheme = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
+    themeBtn.textContent = savedTheme === 'light' ? '☀️' : '🌙';
   }
 
-  const sendBtn = document.getElementById('send-btn');
+  // Send button
+  var sendBtn = document.getElementById('send-btn');
   if (sendBtn) {
-    sendBtn.onclick = function(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      sendMessage();
-    };
+    sendBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      window.sendMessage();
+    });
   }
 
-  const micBtn = document.getElementById('mic-btn');
+  // Mic button
+  var micBtn = document.getElementById('mic-btn');
   if (micBtn) {
-    micBtn.onclick = function(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      toggleMic();
-    };
+    micBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      window.toggleMic();
+    });
+  }
+});
+</script>
+
+<!-- Load assistant module and bind to window._assistant -->
+<script type="module">
+import { Assistant }         from './assistant.js';
+import { TTSEngine }         from './tts.js';
+import { SubtitleController } from './subtitle.js';
+
+const orb = { setConversationState(state, amp) { window.setOrbState?.(state, amp); } };
+const tts      = new TTSEngine();
+const subtitle = new SubtitleController('#subtitle-words');
+
+const STATE_LABELS = { idle:'Standby', listening:'Listening…', thinking:'Thinking…', speaking:'Speaking' };
+
+function applyUIState(state) {
+  const dot  = document.getElementById('state-dot');
+  const txt  = document.getElementById('state-text');
+  const tbSt = document.getElementById('tb-state');
+  if (dot)  dot.className  = 'state-dot ' + state;
+  if (tbSt) tbSt.className = 'tb-state ' + state;
+  if (txt)  txt.textContent = STATE_LABELS[state] ?? state;
+  const overlay = document.getElementById('state-overlay');
+  if (overlay) overlay.style.background = state === 'listening'
+    ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(56,189,248,0.08) 0%, transparent 70%)'
+    : state === 'thinking'
+    ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(108,99,255,0.10) 0%, transparent 70%)'
+    : state === 'speaking'
+    ? 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(127,232,255,0.10) 0%, transparent 70%)'
+    : '';
+  document.querySelectorAll('.pulse-ring').forEach(r => {
+    r.classList.remove('active','speaking','listening');
+    if (state === 'speaking')  r.classList.add('active','speaking');
+    if (state === 'listening') r.classList.add('active','listening');
+  });
+  state === 'thinking' ? window.showThinking?.() : window.hideThinking?.();
+  const stopBtn = document.getElementById('stop-btn');
+  if (stopBtn) stopBtn.style.display = (state === 'thinking' || state === 'speaking') ? 'inline-flex' : 'none';
+  if (state === 'idle') setTimeout(() => window.hideBubble?.(), 600);
+}
+
+const assistant = new Assistant({
+  orb, tts, subtitle,
+  onStateChange(state) { window.__currentState = state; applyUIState(state); },
+  onError(code, msg) {
+    if (code === 'speech-recognition-unsupported') {
+      var btn = document.getElementById('mic-btn');
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed'; }
+    } else {
+      window.showToast?.(msg, 4000);
+    }
+  },
+  onUserTranscript(text) { window.addToHistory?.('user', text); window._incQueryCount?.(); },
+  onInterimTranscript(text) {
+    const inp = document.getElementById('chat-input');
+    if (inp) { inp.value = text; inp.style.height = 'auto'; inp.style.height = Math.min(inp.scrollHeight,200)+'px'; }
+  },
+  onAIReply(text) { window.addToHistory?.('ai', text); window.showBubble?.(text); },
+  onSessionChange({ session, messages }) {
+    window._activeSessionId = session.id;
+    const hist = document.getElementById('chat-history');
+    if (hist && messages) {
+      hist.innerHTML = '';
+      messages.forEach(msg => {
+        const el = document.createElement('div');
+        el.className = 'ch-msg ' + msg.role;
+        const ts = new Date(msg.created_at || Date.now()).toTimeString().slice(0,5);
+        el.innerHTML = `<div class="ch-sender">${msg.role==='user'?'You':'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
+        hist.appendChild(el);
+      });
+      hist.scrollTop = hist.scrollHeight;
+    }
+  },
+});
+
+window._assistant = assistant;
+
+// Session management
+async function loadSessionList() {
+  try {
+    const origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
+    const res = await fetch(`${origin}/api/sessions`);
+    if (!res.ok) throw new Error('server unavailable');
+    const { sessions } = await res.json();
+    window.renderSessionList?.(sessions, window._activeSessionId);
+  } catch(e) {
+    const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    window.renderSessionList?.(local, window._activeSessionId);
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDashboardControls);
-} else {
-  initDashboardControls();
-}
+window.onSessionClick = async (sessionId) => {
+  if (sessionId === window._activeSessionId) return;
+  const result = await assistant.loadSession(sessionId);
+  if (!result) { window.showToast?.('Could not load session', 3000); return; }
+  const hist = document.getElementById('chat-history');
+  if (hist) {
+    hist.innerHTML = '';
+    (result.messages || []).forEach(msg => {
+      const el = document.createElement('div');
+      el.className = 'ch-msg ' + msg.role;
+      const ts = new Date(msg.created_at || Date.now()).toTimeString().slice(0,5);
+      el.innerHTML = `<div class="ch-sender">${msg.role==='user'?'You':'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
+      hist.appendChild(el);
+    });
+    hist.scrollTop = hist.scrollHeight;
+  }
+  document.getElementById('right-panel')?.classList.add('open');
+  window.showToast?.(`Loaded: "${result.session?.title || 'Chat'}"`, 1800);
+};
 
-// Safely initialize assistant
-try {
-  assistant.init();
-} catch (err) {
-  console.warn('[Assistant] Initialisation warning:', err);
-}
+window.onSessionDelete = async (sessionId) => {
+  try {
+    const origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
+    await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    if (sessionId === window._activeSessionId) await window.newChat?.();
+    else loadSessionList();
+    window.showToast?.('Deleted', 1500);
+  } catch(e) {}
+};
 
-if (!tts.isSupported) {
-  showToast('⚠ Text-to-speech is not supported in this browser', 5000);
-}
+// Initialise assistant (starts session + loads history)
+try { await assistant.init(); } catch(e) { console.warn('[MEDHAS] assistant init:', e); }
+loadSessionList();
+if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser', 4000);
 </script>
 </body>
 </html>
-
