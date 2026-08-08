@@ -711,8 +711,14 @@ export function createOrbScene(container, { interactive = true } = {}) {
 
     chromaticPass.uniforms.uTime.value = t;
 
-    if (controls) controls.update();
-    composer.render();
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      scene.background = new THREE.Color(0xecfdf5);
+      renderer.render(scene, camera);
+    } else {
+      scene.background = null;
+      composer.render();
+    }
   }
 
   animate();
