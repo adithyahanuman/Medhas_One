@@ -248,11 +248,56 @@ export class Assistant {
 
   /** Start microphone listening */
   startListening() {
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!this.#recognition && SR) {
+      try {
+        const rec = new SR();
+        rec.lang            = 'en-US';
+        rec.continuous      = false;
+        rec.interimResults  = true;
+        rec.maxAlternatives = 1;
+        this.#recognition   = rec;
+
+        rec.onstart = () => this.#setState('listening');
+
+        rec.onresult = (e) => {
+          let interim = '';
+          let final   = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final   += e.results[i][0].transcript;
+            else                      interim += e.results[i][0].transcript;
+          }
+          if (interim) this.#onInterimTranscript(interim);
+          if (final.trim()) {
+            const transcript = final.trim();
+            try { rec.stop(); } catch {}
+            this.#setState('idle');
+            this.#onUserTranscript(transcript);
+            this.submit(transcript);
+          }
+        };
+
+        rec.onerror = (e) => {
+          if (e.error === 'no-speech') return;
+          console.warn('[STT] recognition error:', e.error);
+          this.#setState('idle');
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            alert('Microphone access blocked. Please click the mic icon in your browser URL address bar to grant permission.');
+          }
+        };
+
+        rec.onend = () => {
+          if (this.#state === 'listening') this.#setState('idle');
+        };
+      } catch (err) {
+        console.warn('[STT] creation error:', err);
+      }
+    }
+
     if (this.#recognition) {
       try {
         this.#recognition.start();
       } catch (err) {
-        // Already started — ignore
         console.warn('[STT] start() warning:', err.message);
       }
     } else if (this.#liveSession?.isConnected) {

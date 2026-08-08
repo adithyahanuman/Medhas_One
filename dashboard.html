@@ -1952,6 +1952,7 @@ window.toggleTheme = () => {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('medhas-theme', next);
   localStorage.setItem('medhas_theme', next);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
@@ -1960,7 +1961,7 @@ window.toggleTheme = () => {
 
 // Initialize saved theme
 (function initTheme() {
-  const saved = localStorage.getItem('medhas_theme') || 'dark';
+  const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
@@ -1977,9 +1978,7 @@ window.sendMessage = () => {
   if (!text) return;
   
   inp.value = '';
-  if (inp) {
-    inp.style.height = 'auto';
-  }
+  inp.style.height = 'auto';
   
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) sendBtn.disabled = false;
@@ -1992,7 +1991,8 @@ window.sendMessage = () => {
   if (window.assistant) {
     window.assistant.submit(text);
   } else {
-    console.warn('[SendMessage] Assistant module loading...');
+    console.warn('[SendMessage] Assistant module loading, retrying submit...');
+    setTimeout(() => window.assistant?.submit(text), 400);
   }
 };
 
@@ -2000,6 +2000,7 @@ window.sendMessage = () => {
 window.handleKey = (e) => {
   if (e && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
+    e.stopPropagation();
     window.sendMessage();
   }
 };
@@ -2007,7 +2008,14 @@ window.handleKey = (e) => {
 /** Called by onclick="toggleMic()". */
 window.toggleMic = () => {
   const btn = document.getElementById('mic-btn');
-  if (_micDisabled || !window.assistant) return;
+  if (_micDisabled) {
+    showToast('Microphone input is disabled', 2500);
+    return;
+  }
+  if (!window.assistant) {
+    showToast('Voice assistant loading, please try again...', 2000);
+    return;
+  }
 
   if (window.assistant.state === 'listening') {
     window.assistant.stopListening();
@@ -2109,21 +2117,20 @@ window.exitApp = (e) => {
 
 // Direct listeners setup
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('send-btn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.sendMessage();
-  });
-
-  document.getElementById('mic-btn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.toggleMic();
-  });
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.sendMessage();
+      }
+    });
+  }
 
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) {
-    const saved = localStorage.getItem('medhas_theme') || 'dark';
+    const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
     btn.textContent = saved === 'light' ? '☀️' : '🌙';
   }
 });
