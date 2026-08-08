@@ -250,16 +250,21 @@
     /* 3D orb canvas & Spline 3D Brain Viewer */
     #hero-orb-container {
       position: absolute; inset: 0; z-index: 1;
-      background: transparent; pointer-events: none;
+      background: transparent !important; pointer-events: none;
     }
     #hero-orb-container spline-viewer {
       width: 100% !important; height: 100% !important;
       display: block; background: transparent !important;
       mix-blend-mode: screen; pointer-events: auto;
     }
+    #hero-orb-container spline-viewer::part(canvas),
+    #hero-orb-container canvas {
+      background: transparent !important;
+    }
     [data-theme="light"] #hero-orb-container { opacity: 0.95; }
     [data-theme="light"] #hero-orb-container spline-viewer {
-      mix-blend-mode: multiply; filter: contrast(1.15) brightness(0.9);
+      mix-blend-mode: normal !important;
+      filter: none !important;
     }
     #hero-orb-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
@@ -269,7 +274,7 @@
       background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, var(--bg) 100%);
     }
     [data-theme="light"] .hero-vignette {
-      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, rgba(248,250,252,0.95) 100%);
+      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, #f8fafc 100%) !important;
     }
 
     /* Scan lines */
@@ -1421,8 +1426,22 @@
 
       // ── Spline 3D Brain continuous rotation & transparent theme setup ──
       const splineViewer = document.querySelector('#hero-orb-container spline-viewer');
+      function clearHeroSplineBg() {
+        try {
+          if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+            splineViewer.spline._scene.background = null;
+          }
+          if (splineViewer && splineViewer.shadowRoot) {
+            const cv = splineViewer.shadowRoot.querySelector('canvas');
+            if (cv) cv.style.background = 'transparent';
+          }
+        } catch(e) {}
+      }
+      setInterval(clearHeroSplineBg, 150);
+
       if (splineViewer) {
         const startRotation = () => {
+          clearHeroSplineBg();
           try {
             const spline = splineViewer.spline;
             if (spline && spline._scene) {
@@ -1430,7 +1449,10 @@
               let angle = 0;
               const rotateLoop = () => {
                 angle += 0.005;
-                if (spline._scene) spline._scene.rotation.y = angle;
+                if (spline._scene) {
+                  spline._scene.background = null;
+                  spline._scene.rotation.y = angle;
+                }
                 requestAnimationFrame(rotateLoop);
               };
               rotateLoop();
