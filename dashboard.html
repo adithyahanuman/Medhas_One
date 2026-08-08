@@ -992,9 +992,9 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- 3D AI Orb Scene — Spline Viewer (scene_ai_orb.splinecode from scene (2).splinecode) -->
+<!-- Native Three.js 3D AI Orb Canvas (Zero Spline dependency, 100% transparent, dynamic themes) -->
 <div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:10; pointer-events:none; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-  <spline-viewer id="spline-orb-viewer" url="./scene_ai_orb.splinecode" loading-anim-type="none" style="width:100%; height:100%; display:block; background:transparent !important;"></spline-viewer>
+  <canvas id="orb-canvas" style="width:100%; height:100%; display:block; background:transparent !important;"></canvas>
 </div>
 
 <!-- Orb -->
@@ -2273,81 +2273,178 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     REACTIVE 3D AI ORB ROTATION & VOICE EXPANSION/CONTRACTION CONTROLLER
-     Continuously rotates the 3D Orb on Y-axis and expands/contracts
-     smoothly in real-time response to AI speech intensity (No container wobble)
+     NATIVE THREE.JS PROCEDURAL 3D AI ORB RENDERER & THEME CONTROLLER
+     100% Native WebGL Three.js procedural 3D AI Orb (Zero Spline connection).
+     No hardcoded background colors, zero load time, 100% transparent canvas,
+     dynamic theme color switching, and real-time voice amplitude reactivity!
 ════════════════════════════════════════════════════════════════════════ -->
 <script>
-(function(){
-  let _orbAngle = 0;
-  let _smoothScale = 1.0;
+(function() {
+  function initNative3DOrb() {
+    const canvas = document.getElementById('orb-canvas');
+    if (!canvas || !window.THREE) return;
 
-  function configureSplineOrb() {
-    const viewer = document.getElementById('spline-orb-viewer');
-    if (!viewer) return;
-    try {
-      if (viewer.spline && viewer.spline._scene) {
-        viewer.spline._scene.background = null;
+    const THREE = window.THREE;
+    const scene = new THREE.Scene();
+    scene.background = null; // 100% Crystal Clear Transparent Canvas!
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 600);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    // Dynamic Lighting
+    const ambLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 2.5);
+    dirLight1.position.set(400, 400, 400);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xa855f7, 2.0);
+    dirLight2.position.set(-400, -400, -200);
+    scene.add(dirLight2);
+
+    // 1. Inner Organic Liquid-Mesh Core
+    const coreGeo = new THREE.IcosahedronGeometry(130, 32);
+    const posAttr = coreGeo.attributes.position;
+    const origPositions = posAttr.array.slice();
+
+    const coreMat = new THREE.MeshPhongMaterial({
+      color: 0x06b6d4,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.6,
+      specular: 0xffffff,
+      shininess: 90,
+      transparent: true,
+      opacity: 0.88,
+      flatShading: true
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(coreMesh);
+
+    // 2. Outer Holographic Energy Particle Cloud
+    const particleGeo = new THREE.IcosahedronGeometry(175, 16);
+    const particleMat = new THREE.PointsMaterial({
+      color: 0x38bdf8,
+      size: 3.5,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending
+    });
+    const particleCloud = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleCloud);
+
+    // 3. Outer Aura Glass Shell
+    const auraGeo = new THREE.IcosahedronGeometry(190, 16);
+    const auraMat = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending
+    });
+    const auraMesh = new THREE.Mesh(auraGeo, auraMat);
+    scene.add(auraMesh);
+
+    // Dynamic Theme Color Synchronizer
+    window.updateOrbThemeColors = function() {
+      const isLight = (document.documentElement.getAttribute('data-theme') === 'light') ||
+                      (document.body && document.body.getAttribute('data-theme') === 'light');
+      if (isLight) {
+        // Light Mode: Electric Indigo / Cyan Glow
+        coreMat.color.setHex(0x4f46e5);
+        coreMat.emissive.setHex(0x0284c7);
+        dirLight1.color.setHex(0x0284c7);
+        dirLight2.color.setHex(0x6366f1);
+        particleMat.color.setHex(0x0284c7);
+        auraMat.color.setHex(0x6366f1);
+      } else {
+        // Dark Mode: Neon Cyan / Sapphire / Electric Violet Glow
+        coreMat.color.setHex(0x06b6d4);
+        coreMat.emissive.setHex(0x0284c7);
+        dirLight1.color.setHex(0x38bdf8);
+        dirLight2.color.setHex(0xa855f7);
+        particleMat.color.setHex(0x38bdf8);
+        auraMat.color.setHex(0xa855f7);
       }
-      if (viewer.spline && viewer.spline._renderer) {
-        viewer.spline._renderer.setClearColor(0x000000, 0);
+    };
+
+    let time = 0;
+    let smoothScale = 1.0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.015;
+
+      // Organic wavy vertex deformation (simulating dynamic fluid orb motion)
+      const state = window.__currentState || 'idle';
+      const spkAmp = window._aiSpeakAmplitude || 0;
+      const isSpeaking = window._aiSpeaking || state === 'speaking';
+      const waveFreq = isSpeaking ? 0.08 : (state === 'listening' ? 0.05 : 0.03);
+      const waveAmp = isSpeaking ? 18.0 + spkAmp * 40.0 : (state === 'thinking' ? 12.0 : 6.0);
+
+      for (let i = 0; i < posAttr.count; i++) {
+        const u = origPositions[i * 3];
+        const v = origPositions[i * 3 + 1];
+        const w = origPositions[i * 3 + 2];
+        const distance = Math.sqrt(u * u + v * v + w * w);
+
+        const offset = Math.sin(u * waveFreq + time * 2) * Math.cos(v * waveFreq + time * 1.5) * waveAmp;
+        const factor = (distance + offset) / distance;
+
+        posAttr.setXYZ(i, u * factor, v * factor, w * factor);
       }
-      if (viewer.shadowRoot) {
-        const cv = viewer.shadowRoot.querySelector('canvas');
-        if (cv) cv.style.background = 'transparent';
+      posAttr.needsUpdate = true;
+
+      // Continuous 3D rotations
+      coreMesh.rotation.y += 0.005;
+      coreMesh.rotation.x += 0.002;
+
+      particleCloud.rotation.y -= 0.008;
+      particleCloud.rotation.z += 0.003;
+
+      auraMesh.rotation.y += 0.003;
+
+      // Target scale expansion & contraction based on speech intensity
+      let targetScale = 1.0;
+      if (isSpeaking) {
+        targetScale = 1.0 + Math.min(0.45, Math.max(spkAmp * 0.50, 0.15));
+      } else if (state === 'listening') {
+        targetScale = 1.03 + Math.sin(time * 3) * 0.03;
+      } else if (state === 'thinking') {
+        targetScale = 1.05 + Math.sin(time * 6) * 0.04;
+      } else {
+        targetScale = 1.0 + Math.sin(time * 1.5) * 0.01;
       }
-    } catch(e) {}
-  }
 
-  function renderOrbLoop() {
-    requestAnimationFrame(renderOrbLoop);
-    _orbAngle += 0.006; // smooth continuous 3D rotation!
+      smoothScale += (targetScale - smoothScale) * 0.12;
 
-    const splineViewer = document.getElementById('spline-orb-viewer');
-    configureSplineOrb();
+      coreMesh.scale.set(smoothScale, smoothScale, smoothScale);
+      particleCloud.scale.set(smoothScale * 1.05, smoothScale * 1.05, smoothScale * 1.05);
+      auraMesh.scale.set(smoothScale * 1.08, smoothScale * 1.08, smoothScale * 1.08);
 
-    // Continuous 3D Y-rotation directly on Spline _scene
-    try {
-      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-        splineViewer.spline._scene.background = null;
-        splineViewer.spline._scene.rotation.y = _orbAngle;
-      }
-    } catch(e) {}
-
-    // Compute target scale expansion & contraction based on speech intensity
-    const state = window.__currentState || 'idle';
-    const spkAmp = window._aiSpeakAmplitude || 0;
-    const isSpeaking = window._aiSpeaking || state === 'speaking';
-
-    let targetScale = 1.0;
-    if (isSpeaking) {
-      // Expands & contracts dynamically with AI voice intensity spikes!
-      targetScale = 1.0 + Math.min(0.40, Math.max(spkAmp * 0.45, 0.12));
-    } else if (state === 'listening') {
-      targetScale = 1.03 + Math.sin(_orbAngle * 4) * 0.02;
-    } else if (state === 'thinking') {
-      targetScale = 1.04 + Math.sin(_orbAngle * 8) * 0.03;
-    } else {
-      // Natural gentle breathing pulse at rest
-      targetScale = 1.0 + Math.sin(_orbAngle * 2) * 0.008;
+      window.updateOrbThemeColors();
+      renderer.render(scene, camera);
     }
 
-    _smoothScale += (targetScale - _smoothScale) * 0.12;
+    animate();
 
-    // Apply scale expansion & contraction ONLY (no position translation / container wobble)
-    if (splineViewer) {
-      splineViewer.style.transform = `scale(${_smoothScale.toFixed(3)})`;
-      splineViewer.style.transformOrigin = 'center center';
-    }
-  }
-
-  const viewer = document.getElementById('spline-orb-viewer');
-  if (viewer) {
-    viewer.addEventListener('load', () => {
-      configureSplineOrb();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     });
   }
-  renderOrbLoop();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNative3DOrb);
+  } else {
+    initNative3DOrb();
+  }
 })();
 </script>
 </body>
