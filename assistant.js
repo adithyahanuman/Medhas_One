@@ -326,9 +326,9 @@ export class Assistant {
 
     try {
       const origin = this.#getOrigin();
-      const isStaticSite = location.hostname.endsWith('github.io') || location.hostname.includes('github.app');
+      const hasBackend = !location.hostname.endsWith('github.io') || window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url');
 
-      if (!isStaticSite) {
+      if (hasBackend) {
         // ── Fetch from stream endpoint (collects full reply) ───────────────────
         try {
           const res = await fetch(`${origin}/api/chat/stream`, {
@@ -386,7 +386,7 @@ export class Assistant {
         }
       }
 
-      // ── Client-side direct Gemini API fallback (GitHub Pages / offline server) ─
+      // ── Client-side direct Gemini API fallback (GitHub Pages / static) ────────
       if (!reply) {
         reply = await this.#fetchDirectGemini(text, signal);
       }
@@ -440,8 +440,12 @@ export class Assistant {
 
   // ── Private: Direct Gemini Client-side Call for Static Web ────────────────
   async #fetchDirectGemini(text, signal) {
-    const _defKey = atob('QVEuQWI4Uk42SW9tc0RrSDQzaTVyanVpdklSYW9WTkc1dF8zblBPVzIwaXl2bDZqdDcwWXc=');
-    let apiKey = localStorage.getItem('medhas_gemini_api_key') || _defKey;
+    const defaultKeys = [
+      atob('QVEuQWI4Uk42SW9tc0RrSDQzaTVyanVpdklSYW9WTkc1dF8zblBPVzIwaXl2bDZqdDcwWXc='),
+      atob('QVEuQWI4Uk42SjhNTkY2VjRidFZ0QnBHcjV6bHY3VFFHb2dBZFUwNkNnQXkyX2hKaF82cWc=')
+    ];
+    let userKey = localStorage.getItem('medhas_gemini_api_key');
+    const apiKeys = userKey ? [userKey, ...defaultKeys] : defaultKeys;
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
     let lastError = null;
 
@@ -453,34 +457,32 @@ export class Assistant {
       { role: 'user', parts: [{ text }] }
     ];
 
-    for (const model of models) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents,
-            generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
-          }),
-          signal,
-        });
+    for (const key of apiKeys) {
+      for (const model of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents,
+              generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
+            }),
+            signal,
+          });
 
-        if (res.ok) {
-          const data = await res.json();
-          const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (replyText) return replyText.trim();
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          lastError = errData.error?.message || `HTTP ${res.status}`;
-          // If invalid key error, clear saved key so user is prompted next time
-          if (res.status === 400 || res.status === 403) {
-            localStorage.removeItem('medhas_gemini_api_key');
+          if (res.ok) {
+            const data = await res.json();
+            const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (replyText) return replyText.trim();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            lastError = errData.error?.message || `HTTP ${res.status}`;
           }
+        } catch (e) {
+          if (e.name === 'AbortError') throw e;
+          lastError = e.message;
         }
-      } catch (e) {
-        if (e.name === 'AbortError') throw e;
-        lastError = e.message;
       }
     }
 
