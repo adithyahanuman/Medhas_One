@@ -774,7 +774,7 @@ function animate() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('hero-orb-container');
-  if (container) {
+  if (container && !container.querySelector('spline-viewer')) {
     window.orb = createOrbScene(container, { interactive: false });
   }
 });

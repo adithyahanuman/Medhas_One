@@ -19,6 +19,9 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/shaders/CopyShader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Spline 3D Scene Runtime & Viewer for Brain Model -->
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.72/build/spline-viewer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@splinetool/runtime@1.9.72/build/runtime.min.js"></script>
 
   <style>
     /* ══════════════════════════════════════════════════════
@@ -1021,7 +1024,9 @@
   ══════════════════════════════════════ -->
   <section id="hero" aria-label="Hero">
     <div class="hero-mesh" aria-hidden="true"></div>
-    <div id="hero-orb-container" aria-hidden="true"></div>
+    <div id="hero-orb-container" aria-hidden="true">
+      <spline-viewer url="./scene.splinecode" loading-anim-type="spinner" style="width:100%; height:100%; display:block; background:transparent;"></spline-viewer>
+    </div>
     <div class="hero-vignette" aria-hidden="true"></div>
     <div class="hero-scanlines" aria-hidden="true"></div>
 
