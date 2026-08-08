@@ -1317,13 +1317,122 @@
           ? `rgba(56,189,248,${alpha})`
           : `rgba(108,99,255,${alpha})`;
       ctx.fillStyle=color;
+      ctx.fillStyle=color;
       ctx.fillRect(x,c.height-h,3,h);
       ctx.fillRect(x,0,3,h*0.3);
     }
-    t+=0.8; requestAnimationFrame(draw);
+    t+=0.8;
+    requestAnimationFrame(draw);
   }
   draw();
 })();
+
+function parseSessionDate(ts) {
+  if (!ts) return new Date();
+  if (typeof ts === 'number') return new Date(ts);
+  if (typeof ts === 'string') {
+    const clean = ts.includes('T') ? ts : ts.replace(' ', 'T') + 'Z';
+    const parsed = new Date(clean);
+    if (!isNaN(parsed.getTime())) return parsed;
+    const fallback = new Date(ts);
+    if (!isNaN(fallback.getTime())) return fallback;
+  }
+  return new Date();
+}
+
+window.renderSessionList = function(sessions, activeId) {
+  const list = document.getElementById('session-list');
+  if (!list) return;
+  if (!sessions || sessions.length === 0) {
+    list.innerHTML = '<div class="sess-empty">No past conversations yet.</div>';
+    return;
+  }
+
+  const now = Date.now();
+  const dayMs = 86400000;
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const yesterdayStart = new Date(todayStart - dayMs);
+
+  const groups = { today: [], yesterday: [], earlier: [] };
+  for (const s of sessions) {
+    const d = parseSessionDate(s.updated_at || s.created_at);
+    const timeMs = d.getTime();
+    if (timeMs >= todayStart.getTime())          groups.today.push(s);
+    else if (timeMs >= yesterdayStart.getTime()) groups.yesterday.push(s);
+    else                                         groups.earlier.push(s);
+  }
+
+  function relTime(ts) {
+    const d = parseSessionDate(ts);
+    const timeMs = d.getTime();
+    const diff = Math.floor((now - timeMs) / 60000);
+    if (diff < 1)  return 'just now';
+    if (diff < 60) return `${diff}m ago`;
+    const h = Math.floor(diff / 60);
+    if (h < 24)    return `${h}h ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function renderGroup(label, items) {
+    if (!items || !items.length) return '';
+    const cards = items.map(s => `
+      <div class="sess-card ${s.id === activeId ? 'active' : ''}" id="sess-${s.id}"
+           onclick="window.onSessionClick?.('${s.id}')">
+        <span class="sess-icon">💬</span>
+        <div class="sess-info">
+          <div class="sess-title">${escapeHtml(s.title || 'Untitled Chat')}</div>
+          <div class="sess-time">${relTime(s.updated_at || s.created_at)}</div>
+        </div>
+        <button class="sess-del" title="Delete" onclick="event.stopPropagation(); window.onSessionDelete?.('${s.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+          </svg>
+        </button>
+      </div>`);
+    return `<div class="sess-group-label">${label}</div>${cards.join('')}`;
+  }
+
+  list.innerHTML =
+    renderGroup('Today', groups.today) +
+    renderGroup('Yesterday', groups.yesterday) +
+    renderGroup('Earlier', groups.earlier);
+};
+
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════
+// CHAT PRIMITIVES
+// ════════════════════════════════════════════
+window.saveChatToLocal = function(role, text) {
+  if (role !== 'user') return;
+  var activeId = window._activeSessionId || ('local_sess_' + Date.now());
+  window._activeSessionId = activeId;
+
+  var sessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+  var existing = sessions.find(function(s) { return s.id === activeId; });
+  var cleanText = String(text || '').replace(/<[^>]*>/g, '').trim();
+  var title = cleanText.slice(0, 35) + (cleanText.length > 35 ? '…' : '');
+  
+  if (existing) {
+    existing.updated_at = new Date().toISOString();
+    if (!existing.title || existing.title === 'Untitled Chat' || existing.title === 'New Chat') {
+      existing.title = title || 'Chat';
+    }
+  } else {
+    sessions.unshift({
+      id: activeId,
+      title: title || 'New Conversation',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+  localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
+  if (typeof window.renderSessionList === 'function') {
+    window.renderSessionList(sessions, activeId);
+  }
+};
 
 // ════════════════════════════════════════════
 // CLOCK
@@ -1913,12 +2022,22 @@ window.stopAI = function() {
 window.newChat = async function() {
   if (window._assistant) window._assistant.interrupt && window._assistant.interrupt();
   window.hideBubble();
+  
+  // Reset active session ID and chat memory context
+  window._activeSessionId = 'sess_' + Date.now();
+  window._chatHistory = [];
+  
   var hist = document.getElementById('chat-history');
   if (hist) hist.innerHTML = '<div class="ch-empty">New conversation started. Type a message below!</div>';
   var sugs = document.getElementById('suggestions');
   if (sugs) sugs.classList.remove('hidden');
+  
   if (window._assistant && window._assistant.startNewSession) {
     await window._assistant.startNewSession();
+  }
+  
+  if (typeof window.loadSessionList === 'function') {
+    window.loadSessionList();
   }
   window.showToast('New conversation started', 1500);
 };
@@ -2095,40 +2214,50 @@ window._assistant = assistant;
 // Session management
 window.loadSessionList = async function() {
   var activeId = window._activeSessionId;
+  const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+  window.renderSessionList?.(local, activeId);
+
   try {
     const origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
     const res = await fetch(`${origin}/api/sessions`);
     if (res.ok) {
       const { sessions } = await res.json();
       if (sessions && sessions.length) {
-        localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
-        window.renderSessionList?.(sessions, activeId);
-        return;
+        // Merge local and server sessions
+        const map = new Map();
+        local.forEach(s => map.set(s.id, s));
+        sessions.forEach(s => map.set(s.id, s));
+        const merged = Array.from(map.values());
+        localStorage.setItem('medhas_local_sessions', JSON.stringify(merged));
+        window.renderSessionList?.(merged, activeId);
       }
     }
   } catch(e) {}
-  const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
-  window.renderSessionList?.(local, activeId);
 };
 
 window.onSessionClick = async (sessionId) => {
-  if (sessionId === window._activeSessionId) return;
+  window._activeSessionId = sessionId;
+  
+  // Re-render left panel immediately to highlight active card
+  const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+  window.renderSessionList?.(local, sessionId);
+
   const result = await assistant.loadSession(sessionId);
-  if (!result) { window.showToast?.('Could not load session', 3000); return; }
   const hist = document.getElementById('chat-history');
-  if (hist) {
+  if (hist && result && result.messages) {
     hist.innerHTML = '';
-    (result.messages || []).forEach(msg => {
+    result.messages.forEach(msg => {
       const el = document.createElement('div');
       el.className = 'ch-msg ' + msg.role;
-      const ts = new Date(msg.created_at || Date.now()).toTimeString().slice(0,5);
+      const d = new Date(msg.created_at || Date.now());
+      const ts = !isNaN(d.getTime()) ? d.toTimeString().slice(0,5) : '--:--';
       el.innerHTML = `<div class="ch-sender">${msg.role==='user'?'You':'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
       hist.appendChild(el);
     });
     hist.scrollTop = hist.scrollHeight;
   }
   document.getElementById('right-panel')?.classList.add('open');
-  window.showToast?.(`Loaded: "${result.session?.title || 'Chat'}"`, 1800);
+  window.showToast?.(`Loaded conversation`, 1500);
 };
 
 window.onSessionDelete = async (sessionId) => {
