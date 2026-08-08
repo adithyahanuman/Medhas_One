@@ -1489,7 +1489,7 @@ setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList
 // ── Theme Toggle ─────────────────────────────────────────────────────────────
 window.toggleTheme = function() {
   const html = document.documentElement;
-  const current = html.getAttribute('data-theme') || 'dark';
+  const current = html.getAttribute('data-theme') || (document.body ? document.body.getAttribute('data-theme') : 'dark');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   if (document.body) document.body.setAttribute('data-theme', next);
@@ -1497,6 +1497,8 @@ window.toggleTheme = function() {
   localStorage.setItem('medhas_theme', next);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+  const state = window.__currentState || 'idle';
+  if (typeof window.applyUIState === 'function') window.applyUIState(state);
   window.showToast(`${next === 'light' ? 'Light' : 'Dark'} Mode`, 1200);
 };
 
@@ -1951,14 +1953,28 @@ function applyUIState(state) {
   if (dot)  dot.className  = 'state-dot ' + state;
   if (tbSt) tbSt.className = 'tb-state ' + state;
   if (txt)  txt.textContent = STATE_LABELS[state] ?? state;
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const isLight = theme === 'light';
   const overlay = document.getElementById('state-overlay');
-  if (overlay) overlay.style.background = state === 'listening'
-    ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(56,189,248,0.08) 0%, transparent 70%)'
-    : state === 'thinking'
-    ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(108,99,255,0.10) 0%, transparent 70%)'
-    : state === 'speaking'
-    ? 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(127,232,255,0.10) 0%, transparent 70%)'
-    : '';
+  if (overlay) {
+    if (state === 'listening') {
+      overlay.style.background = isLight
+        ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(2,132,199,0.12) 0%, transparent 70%)'
+        : 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(56,189,248,0.08) 0%, transparent 70%)';
+    } else if (state === 'thinking') {
+      overlay.style.background = isLight
+        ? 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(79,70,229,0.12) 0%, transparent 70%)'
+        : 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(108,99,255,0.10) 0%, transparent 70%)';
+    } else if (state === 'speaking') {
+      overlay.style.background = isLight
+        ? 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(14,165,233,0.15) 0%, transparent 70%)'
+        : 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(127,232,255,0.10) 0%, transparent 70%)';
+    } else {
+      overlay.style.background = isLight
+        ? 'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(99,102,241,0.04) 0%, rgba(248,250,252,0.95) 100%)'
+        : 'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(6,12,40,0) 40%, rgba(5,8,16,0.95) 100%)';
+    }
+  }
   document.querySelectorAll('.pulse-ring').forEach(r => {
     r.classList.remove('active','speaking','listening');
     if (state === 'speaking')  r.classList.add('active','speaking');
@@ -1966,9 +1982,10 @@ function applyUIState(state) {
   });
   state === 'thinking' ? window.showThinking?.() : window.hideThinking?.();
   const stopBtn = document.getElementById('stop-btn');
-  if (stopBtn) stopBtn.style.display = (state === 'thinking' || state === 'speaking') ? 'inline-flex' : 'none';
+  if (stopBtn) stopBtn.style.display = (state === 'thinking' || state === 'speaking') ? 'inline-flex' : 'inline-flex';
   if (state === 'idle') setTimeout(() => window.hideBubble?.(), 600);
 }
+window.applyUIState = applyUIState;
 
 const assistant = new Assistant({
   orb, tts, subtitle,
@@ -2058,46 +2075,61 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     REACTIVE 3D AI ORB ANIMATION & VIBRATION CONTROLLER
-     Vibrates & pulses dynamically based on AI speech / answer state
+     REACTIVE 3D AI ORB ROTATION & VOICE EXPANSION/CONTRACTION CONTROLLER
+     Continuously rotates the 3D Orb on Y-axis and expands/contracts
+     smoothly in real-time response to AI speech intensity (No container wobble)
 ════════════════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
-  let _smoothAmp = 0;
-  let _vibPhase = 0;
+  let _orbAngle = 0;
+  let _smoothScale = 1.0;
 
-  function getTargetAmp() {
+  function renderOrbLoop() {
+    requestAnimationFrame(renderOrbLoop);
+    _orbAngle += 0.006; // smooth continuous 3D rotation!
+
+    const splineViewer = document.getElementById('spline-orb-viewer');
+    
+    // Continuous 3D Y-rotation directly on Spline _scene
+    try {
+      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+        splineViewer.spline._scene.background = null;
+        splineViewer.spline._scene.rotation.y = _orbAngle;
+      }
+    } catch(e) {}
+
+    // Compute target scale expansion & contraction based on speech intensity
     const state = window.__currentState || 'idle';
     const spkAmp = window._aiSpeakAmplitude || 0;
-    if (window._aiSpeaking) return Math.max(spkAmp, 0.08);
-    if (state === 'speaking') return Math.max(spkAmp, 0.07);
-    if (state === 'thinking') return 0.025;
-    if (state === 'listening') return 0.03;
-    return 0.005;
-  }
-
-  function animateOrbVibration() {
-    requestAnimationFrame(animateOrbVibration);
-    const state = window.__currentState || 'idle';
     const isSpeaking = window._aiSpeaking || state === 'speaking';
     
-    const targetAmp = getTargetAmp();
-    _smoothAmp += (targetAmp - _smoothAmp) * 0.12;
+    let targetScale = 1.0;
+    if (isSpeaking) {
+      // Expands & contracts dynamically with AI voice intensity spikes!
+      targetScale = 1.0 + Math.min(0.40, Math.max(spkAmp * 0.45, 0.12));
+    } else if (state === 'listening') {
+      targetScale = 1.03 + Math.sin(_orbAngle * 4) * 0.02;
+    } else if (state === 'thinking') {
+      targetScale = 1.04 + Math.sin(_orbAngle * 8) * 0.03;
+    } else {
+      // Natural gentle breathing pulse at rest
+      targetScale = 1.0 + Math.sin(_orbAngle * 2) * 0.008;
+    }
 
-    const freq = isSpeaking ? 30 : (state === 'thinking' ? 12 : 2);
-    _vibPhase += 0.016 * freq;
+    _smoothScale += (targetScale - _smoothScale) * 0.12;
 
-    const vibX = Math.sin(_vibPhase * 1.3) * _smoothAmp * 45;
-    const vibY = Math.cos(_vibPhase * 1.1) * _smoothAmp * 30;
-    const rotZ = Math.sin(_vibPhase * 1.7) * _smoothAmp * 12;
-    const scale = 1.0 + Math.sin(_vibPhase * 0.4) * 0.015 + _smoothAmp * 0.25;
-
-    const viewer = document.getElementById('spline-orb-viewer') || document.getElementById('ai-orb-3d-container');
-    if (viewer) {
-      viewer.style.transform = `translate3d(${vibX.toFixed(1)}px, ${vibY.toFixed(1)}px, 0px) rotate(${rotZ.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+    // Apply scale expansion & contraction ONLY (no position translation / container wobble)
+    if (splineViewer) {
+      splineViewer.style.transform = `scale(${_smoothScale.toFixed(3)})`;
+      splineViewer.style.transformOrigin = 'center center';
     }
   }
-  animateOrbVibration();
+
+  const viewer = document.getElementById('spline-orb-viewer');
+  if (viewer) {
+    viewer.addEventListener('load', renderOrbLoop);
+  }
+  renderOrbLoop();
 })();
 </script>
 </body>
