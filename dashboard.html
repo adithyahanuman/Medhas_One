@@ -17,9 +17,18 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/shaders/CopyShader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
-  <!-- Spline 3D Particles Runtime & Viewer -->
+  <!-- ImportMap: must be BEFORE any type=module scripts -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.min.js",
+      "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/controls/OrbitControls.js",
+      "@splinetool/loader": "https://unpkg.com/@splinetool/loader@1.9.72/build/loader.js"
+    }
+  }
+  </script>
+  <!-- Spline viewer web component (for background particles only) -->
   <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.72/build/spline-viewer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@splinetool/runtime@1.9.72/build/runtime.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -961,10 +970,8 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- Spline 3D Background Layer (scene_new.splinecode) -->
-<div id="spline-particles-container" style="position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.9;">
-  <spline-viewer url="./scene_new.splinecode" loading-anim-type="spinner" style="width:100%; height:100%; display:block; background:transparent;"></spline-viewer>
-</div>
+<!-- 3D Human/Design scene — Three.js + SplineLoader (scene_human.splinecode) -->
+<div id="human-3d-container" style="position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden;"></div>
 
 <!-- Orb -->
 <div id="orb-container"></div>
@@ -1812,10 +1819,24 @@ window._deliverReply = function(reply, userText) {
   window._chatHistory.push({ role: 'model', parts: [{ text: reply }] });
   window.addToHistory('ai', reply);
   window.showBubble(reply);
+
+  // Trigger 3D scene speech reaction
+  var wordCount = reply.trim().split(/\s+/).length;
+  window._aiSpeaking = true;
+  window._aiSpeakAmplitude = Math.min(0.06, 0.02 + wordCount * 0.001);
+  window._aiSpeakDuration = Math.max(2000, wordCount * 180);
+  clearTimeout(window._aiSpeakTimer);
+  window._aiSpeakTimer = setTimeout(function() {
+    window._aiSpeaking = false;
+    window._aiSpeakAmplitude = 0;
+  }, window._aiSpeakDuration);
+
   if ('speechSynthesis' in window) {
     var clean = reply.replace(/[*#`_\[\]]/g, '');
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
+    var utt = new SpeechSynthesisUtterance(clean);
+    utt.onend = function() { window._aiSpeaking = false; };
+    window.speechSynthesis.speak(utt);
   }
 };
 
@@ -2210,6 +2231,155 @@ window.onSessionDelete = async (sessionId) => {
 try { await assistant.init(); } catch(e) { console.warn('[MEDHAS] assistant init:', e); }
 loadSessionList();
 if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser', 4000);
+
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     THREE.JS + SPLINELOADER — Reactive 3D Human Scene
+     Vibrates/pulses in sync with AI speech state
+════════════════════════════════════════════════════════════════════════ -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import SplineLoader from '@splinetool/loader';
+
+const container = document.getElementById('human-3d-container');
+if (!container) throw new Error('human-3d-container not found');
+
+// ── Camera (Orthographic, matching user spec) ─────────────────────────────
+const camera = new THREE.OrthographicCamera(
+  window.innerWidth / -2, window.innerWidth / 2,
+  window.innerHeight / 2, window.innerHeight / -2,
+  -50000, 10000
+);
+camera.position.set(0, 0, 0);
+camera.quaternion.setFromEuler(new THREE.Euler(0, 0, 0));
+
+// ── Scene ─────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+
+// ── Renderer ─────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.setClearColor(0x000000, 0); // fully transparent background
+renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;';
+container.appendChild(renderer.domElement);
+
+// ── Orbit Controls ────────────────────────────────────────────────────────
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.125;
+controls.enableZoom = false;
+controls.enablePan = false;
+
+// ── Load Spline Scene ─────────────────────────────────────────────────────
+let splineScene = null;
+let splineRoot = null;
+const loader = new SplineLoader();
+
+// Use local file first, fall back to CDN
+const sceneUrl = location.protocol === 'file:'
+  ? 'http://localhost:3000/scene_human.splinecode'
+  : (location.hostname.endsWith('github.io')
+      ? 'https://adithyahanuman.github.io/Medhas_One/scene_human.splinecode'
+      : location.origin + '/scene_human.splinecode');
+
+loader.load(sceneUrl, (loaded) => {
+  splineScene = loaded;
+  // Wrap in a pivot for reactive transforms
+  splineRoot = new THREE.Group();
+  splineRoot.add(splineScene);
+  scene.add(splineRoot);
+  console.log('[MEDHAS] Spline scene loaded:', sceneUrl);
+});
+
+// ── Theme-aware background ────────────────────────────────────────────────
+function getThemeBg() {
+  return document.documentElement.getAttribute('data-theme') === 'light'
+    ? new THREE.Color('#f0f4ff') : null;
+}
+scene.background = getThemeBg();
+
+// ── Reactive Animation State ──────────────────────────────────────────────
+let _smoothAmp = 0;      // smoothed vibration amplitude
+let _baseRotY = 0;       // gentle base rotation
+let _breathPhase = 0;    // breathing cycle
+let _vibPhase = 0;       // high-freq vibration phase
+
+function getTargetAmp() {
+  const state = window.__currentState || 'idle';
+  const spkAmp = window._aiSpeakAmplitude || 0;
+  if (window._aiSpeaking) return spkAmp || 0.045;
+  if (state === 'speaking')  return 0.04;
+  if (state === 'thinking')  return 0.012;
+  if (state === 'listening') return 0.018;
+  return 0.004; // idle breathing
+}
+
+function getVibFreq() {
+  const state = window.__currentState || 'idle';
+  if (window._aiSpeaking || state === 'speaking') return 18;  // fast shiver
+  if (state === 'thinking')  return 6;
+  if (state === 'listening') return 4;
+  return 1.2; // slow breath
+}
+
+// ── Resize Handler ────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.left   = window.innerWidth / -2;
+  camera.right  = window.innerWidth / 2;
+  camera.top    = window.innerHeight / 2;
+  camera.bottom = window.innerHeight / -2;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Animation Loop ────────────────────────────────────────────────────────
+renderer.setAnimationLoop((time) => {
+  controls.update();
+
+  // Smooth amplitude toward target
+  const target = getTargetAmp();
+  _smoothAmp += (target - _smoothAmp) * 0.08;
+
+  // Update phases
+  const freq = getVibFreq();
+  _vibPhase   += 0.016 * freq;
+  _breathPhase += 0.008;
+  _baseRotY   += 0.002; // constant slow spin
+
+  if (splineRoot) {
+    // Vibration: rapid sine at higher amplitude when speaking
+    const vibX = Math.sin(_vibPhase)       * _smoothAmp;
+    const vibZ = Math.cos(_vibPhase * 1.3) * _smoothAmp * 0.6;
+
+    // Breathing: very slow subtle scale pulse
+    const breathScale = 1.0 + Math.sin(_breathPhase) * (_smoothAmp * 0.5 + 0.003);
+
+    // Apply transforms
+    splineRoot.rotation.x = vibX;
+    splineRoot.rotation.z = vibZ;
+    splineRoot.rotation.y = Math.sin(_baseRotY * 0.4) * 0.25; // gentle sway
+    splineRoot.scale.setScalar(breathScale);
+
+    // Color tint on scene background when speaking
+    if (window._aiSpeaking) {
+      const pulse = (Math.sin(_vibPhase * 0.5) + 1) * 0.5;
+      scene.background = document.documentElement.getAttribute('data-theme') === 'light'
+        ? new THREE.Color(0.94 + pulse * 0.02, 0.96, 1.0)
+        : null;
+    } else {
+      scene.background = getThemeBg();
+    }
+  }
+
+  renderer.render(scene, camera);
+});
+
+console.log('[MEDHAS] Three.js Spline scene initialized. URL:', sceneUrl);
 </script>
 </body>
 </html>
