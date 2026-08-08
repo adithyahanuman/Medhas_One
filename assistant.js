@@ -100,29 +100,46 @@ export class Assistant {
     if (SR) {
       const rec = new SR();
       rec.lang            = 'en-US';
-      rec.continuous      = true;   // ← Don't cut off mid-sentence on brief pauses
+      rec.continuous      = true;   // Keep listening through natural pauses
       rec.interimResults  = true;
       rec.maxAlternatives = 1;
       this.#recognition   = rec;
 
-      rec.onstart = () => this.#setState('listening');
+      let fullTranscript = '';
+      let silenceTimer = null;
+
+      rec.onstart = () => {
+        fullTranscript = '';
+        this.#setState('listening');
+      };
 
       rec.onresult = (e) => {
         let interim = '';
-        let final   = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) final   += e.results[i][0].transcript;
-          else                      interim += e.results[i][0].transcript;
+          const text = e.results[i][0].transcript;
+          if (e.results[i].isFinal) {
+            fullTranscript += ' ' + text;
+          } else {
+            interim += text;
+          }
         }
-        if (interim) this.#onInterimTranscript(interim);
-        if (final.trim()) {
-          const transcript = final.trim();
-          // Stop listening as soon as we have a final result
-          try { rec.stop(); } catch {}
-          this.#setState('idle');
-          this.#onUserTranscript(transcript);
-          this.submit(transcript);
+
+        const currentCombined = (fullTranscript + ' ' + interim).trim();
+        if (currentCombined) {
+          this.#onInterimTranscript(currentCombined);
         }
+
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+          const finalSentence = (fullTranscript + ' ' + interim).trim();
+          if (finalSentence && this.#state === 'listening') {
+            try { rec.stop(); } catch {}
+            this.#setState('idle');
+            this.#onUserTranscript(finalSentence);
+            this.submit(finalSentence);
+            fullTranscript = '';
+          }
+        }, 1250);
       };
 
       rec.onerror = (e) => {
@@ -253,28 +270,46 @@ export class Assistant {
       try {
         const rec = new SR();
         rec.lang            = 'en-US';
-        rec.continuous      = false;
+        rec.continuous      = true;   // Keep listening through natural pauses
         rec.interimResults  = true;
         rec.maxAlternatives = 1;
         this.#recognition   = rec;
 
-        rec.onstart = () => this.#setState('listening');
+        let fullTranscript = '';
+        let silenceTimer = null;
+
+        rec.onstart = () => {
+          fullTranscript = '';
+          this.#setState('listening');
+        };
 
         rec.onresult = (e) => {
           let interim = '';
-          let final   = '';
           for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) final   += e.results[i][0].transcript;
-            else                      interim += e.results[i][0].transcript;
+            const text = e.results[i][0].transcript;
+            if (e.results[i].isFinal) {
+              fullTranscript += ' ' + text;
+            } else {
+              interim += text;
+            }
           }
-          if (interim) this.#onInterimTranscript(interim);
-          if (final.trim()) {
-            const transcript = final.trim();
-            try { rec.stop(); } catch {}
-            this.#setState('idle');
-            this.#onUserTranscript(transcript);
-            this.submit(transcript);
+
+          const currentCombined = (fullTranscript + ' ' + interim).trim();
+          if (currentCombined) {
+            this.#onInterimTranscript(currentCombined);
           }
+
+          clearTimeout(silenceTimer);
+          silenceTimer = setTimeout(() => {
+            const finalSentence = (fullTranscript + ' ' + interim).trim();
+            if (finalSentence && this.#state === 'listening') {
+              try { rec.stop(); } catch {}
+              this.#setState('idle');
+              this.#onUserTranscript(finalSentence);
+              this.submit(finalSentence);
+              fullTranscript = '';
+            }
+          }, 1250);
         };
 
         rec.onerror = (e) => {
