@@ -92,6 +92,9 @@ export class Assistant {
 
   // ── init() — wire browser SpeechRecognition and connect Live Session ──────
   async init() {
+    // 0. Auto-detect running local Node server on GitHub Pages
+    await this.#probeLocalServer();
+
     // 1. Browser STT
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (SR) {
@@ -123,11 +126,9 @@ export class Assistant {
       };
 
       rec.onerror = (e) => {
-        console.warn('[STT] Error:', e.error);
+        if (e.error === 'no-speech') return;
+        console.warn('[STT] recognition error:', e.error);
         this.#setState('idle');
-        if (e.error !== 'aborted' && e.error !== 'no-speech') {
-          this.#onError('stt', `Microphone error: ${e.error}`);
-        }
       };
 
       rec.onend = () => {
@@ -153,6 +154,21 @@ export class Assistant {
     }
   }
 
+  async #probeLocalServer() {
+    if (location.hostname.endsWith('github.io') || location.hostname.includes('github.app')) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch('http://localhost:3000/api/sessions', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          window.__medhas_use_local_backend = 'http://localhost:3000';
+          console.log('[Assistant] ✅ Detected running local server at http://localhost:3000 — auto-linked GitHub Pages!');
+        }
+      } catch (e) {}
+    }
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   /**
@@ -162,7 +178,8 @@ export class Assistant {
   async startNewSession() {
     try {
       const origin = this.#getOrigin();
-      if (!location.hostname.endsWith('github.io')) {
+      const hasBackend = !location.hostname.endsWith('github.io') || window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url');
+      if (hasBackend) {
         const res = await fetch(`${origin}/api/sessions`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -202,7 +219,8 @@ export class Assistant {
   async loadSession(sessionId) {
     try {
       const origin = this.#getOrigin();
-      if (!location.hostname.endsWith('github.io')) {
+      const hasBackend = !location.hostname.endsWith('github.io') || window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url');
+      if (hasBackend) {
         const res = await fetch(`${origin}/api/sessions/${sessionId}/messages`);
         if (res.ok) {
           const { session, messages } = await res.json();

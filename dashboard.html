@@ -1710,13 +1710,13 @@ function _incQueryCount() {
 // ── Session management ────────────────────────────────────────────────────────
 async function _loadSessionList() {
   try {
-    if (location.hostname.endsWith('github.io')) {
+    const hasBackend = !location.hostname.endsWith('github.io') || window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url');
+    if (!hasBackend) {
       const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
       window.renderSessionList(localSessions, window._activeSessionId);
       return;
     }
-    const origin = (location.protocol === 'file:' || !location.host)
-      ? 'http://localhost:3000' : location.origin;
+    const origin = window.__medhas_use_local_backend || localStorage.getItem('medhas_backend_url') || ((location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin);
     const res  = await fetch(`${origin}/api/sessions`);
     if (!res.ok) throw new Error('Server unavailable');
     const { sessions } = await res.json();
