@@ -4,6 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MEDHAS — AI Interface</title>
+  <script>
+    // WebGL clearColor patch — intercepts Spline light blue/white scene clear calls at GPU level
+    (function() {
+      function patchProto(proto) {
+        if (!proto || proto._patchedClear) return;
+        proto._patchedClear = true;
+        const origClear = proto.clearColor;
+        proto.clearColor = function(r, g, b, a) {
+          if (r > 0.35 && g > 0.35 && b > 0.35) {
+            return origClear.call(this, 0, 0, 0, 0);
+          }
+          return origClear.call(this, r, g, b, a);
+        };
+      }
+      if (typeof WebGLRenderingContext !== 'undefined') patchProto(WebGLRenderingContext.prototype);
+      if (typeof WebGL2RenderingContext !== 'undefined') patchProto(WebGL2RenderingContext.prototype);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -975,7 +993,8 @@
     #ai-orb-3d-container,
     #ai-orb-3d-container spline-viewer {
       background: transparent !important;
-      mix-blend-mode: screen;
+      mix-blend-mode: normal !important;
+      filter: none !important;
     }
     html[data-theme="light"] #ai-orb-3d-container spline-viewer {
       mix-blend-mode: multiply !important;
