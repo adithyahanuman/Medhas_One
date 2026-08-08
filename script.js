@@ -160,28 +160,31 @@ function createOrbScene(container, { interactive = true } = {}) {
 
   attachHeadGeo(createProcHeadGeo());
 
-  // Asynchronously load detailed Lee Perry-Smith 3D Head Scan GLTF
+  // Asynchronously load detailed Lee Perry-Smith 3D Head Scan GLTF (head.glb)
   if (typeof THREE.GLTFLoader !== 'undefined') {
     const loader = new THREE.GLTFLoader();
-    loader.load('head.glb', (gltf) => {
-      let loadedGeo = null;
-      gltf.scene.traverse((child) => {
-        if (child.isMesh && child.geometry && !loadedGeo) {
-          loadedGeo = child.geometry.clone();
+    const loadHead = (url) => {
+      loader.load(url, (gltf) => {
+        let loadedGeo = null;
+        gltf.scene.traverse((child) => {
+          if (child.isMesh && child.geometry && !loadedGeo) {
+            loadedGeo = child.geometry.clone();
+          }
+        });
+        if (loadedGeo) {
+          while(headGroup.children.length > 0) headGroup.remove(headGroup.children[0]);
+          loadedGeo.computeBoundingBox();
+          const bbox = loadedGeo.boundingBox;
+          const sizeY = bbox.max.y - bbox.min.y || 1;
+          const scaleFactor = 2.6 / sizeY;
+          loadedGeo.scale(scaleFactor, scaleFactor, scaleFactor);
+          attachHeadGeo(loadedGeo);
         }
+      }, undefined, (err) => {
+        if (url !== 'head.glb') loadHead('head.glb');
       });
-      if (loadedGeo) {
-        while(headGroup.children.length > 0) headGroup.remove(headGroup.children[0]);
-        loadedGeo.computeBoundingBox();
-        const bbox = loadedGeo.boundingBox;
-        const sizeY = bbox.max.y - bbox.min.y || 1;
-        const scaleFactor = 2.5 / sizeY;
-        loadedGeo.scale(scaleFactor, scaleFactor, scaleFactor);
-        attachHeadGeo(loadedGeo);
-      }
-    }, undefined, (err) => {
-      console.warn('[3D Head] Using procedural head mesh:', err.message);
-    });
+    };
+    loadHead('./head.glb');
   }
 
   // Orbiting Cyber HUD Halos & Data Nodes around Head
