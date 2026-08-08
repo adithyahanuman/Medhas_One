@@ -1430,26 +1430,41 @@
       // ── Spline 3D Brain continuous rotation & transparent theme setup ──
       const splineViewer = document.querySelector('#hero-orb-container spline-viewer');
       function clearHeroSplineBg() {
-        try {
-          if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-            splineViewer.spline._scene.background = null;
-            splineViewer.spline._scene.traverse((obj) => {
-              if (obj.name && (
-                obj.name.toLowerCase().includes('mouse') || 
-                obj.name.toLowerCase().includes('move') || 
-                obj.name.toLowerCase().includes('text') ||
-                obj.isText || obj.type === 'Text'
-              )) {
-                obj.visible = false;
-                obj.scale.set(0, 0, 0);
+        document.querySelectorAll('spline-viewer').forEach(splineViewer => {
+          try {
+            if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+              splineViewer.spline._scene.background = null;
+              splineViewer.spline._scene.traverse((obj) => {
+                if (obj.name && (
+                  obj.name.toLowerCase().includes('mouse') || 
+                  obj.name.toLowerCase().includes('move') || 
+                  obj.name.toLowerCase().includes('text') ||
+                  obj.isText || obj.type === 'Text'
+                )) {
+                  obj.visible = false;
+                  obj.scale.set(0, 0, 0);
+                }
+              });
+            }
+            if (splineViewer && splineViewer.shadowRoot) {
+              const cv = splineViewer.shadowRoot.querySelector('canvas');
+              if (cv) cv.style.background = 'transparent';
+
+              // Permanently remove "Built with Spline" watermark logo badge
+              const logo = splineViewer.shadowRoot.querySelector('#logo') || 
+                           splineViewer.shadowRoot.querySelector('a[href*="spline"]') ||
+                           splineViewer.shadowRoot.querySelector('.watermark') ||
+                           splineViewer.shadowRoot.querySelector('a');
+              if (logo) {
+                logo.style.display = 'none';
+                logo.style.opacity = '0';
+                logo.style.visibility = 'hidden';
+                logo.style.pointerEvents = 'none';
+                logo.remove();
               }
-            });
-          }
-          if (splineViewer && splineViewer.shadowRoot) {
-            const cv = splineViewer.shadowRoot.querySelector('canvas');
-            if (cv) cv.style.background = 'transparent';
-          }
-        } catch(e) {}
+            }
+          } catch(e) {}
+        });
       }
       setInterval(clearHeroSplineBg, 100);
 

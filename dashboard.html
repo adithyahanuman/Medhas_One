@@ -972,15 +972,23 @@
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
-    /* 3D Orb Native Canvas */
-    #ai-orb-3d-container {
+    /* 3D Orb Native Canvas & Spline Watermark Hide */
+    #ai-orb-3d-container,
+    #ai-orb-3d-container spline-viewer,
+    spline-viewer {
       background: transparent !important;
     }
-    #orb-canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-      background: transparent !important;
+    spline-viewer::part(logo),
+    spline-viewer #logo,
+    spline-viewer a[href*="spline"],
+    spline-viewer .watermark {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
     }
   </style>
 </head>
@@ -2283,18 +2291,32 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
   let _smoothScale = 1.0;
 
   function clearSplineBg() {
-    const splineViewer = document.getElementById('spline-orb-viewer');
-    try {
-      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-        splineViewer.spline._scene.background = null;
-      }
-      if (splineViewer && splineViewer.shadowRoot) {
-        const cv = splineViewer.shadowRoot.querySelector('canvas');
-        if (cv) cv.style.background = 'transparent';
-      }
-    } catch(e) {}
+    document.querySelectorAll('spline-viewer').forEach(splineViewer => {
+      try {
+        if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+          splineViewer.spline._scene.background = null;
+        }
+        if (splineViewer && splineViewer.shadowRoot) {
+          const cv = splineViewer.shadowRoot.querySelector('canvas');
+          if (cv) cv.style.background = 'transparent';
+
+          // Permanently remove "Built with Spline" watermark logo badge
+          const logo = splineViewer.shadowRoot.querySelector('#logo') || 
+                       splineViewer.shadowRoot.querySelector('a[href*="spline"]') ||
+                       splineViewer.shadowRoot.querySelector('.watermark') ||
+                       splineViewer.shadowRoot.querySelector('a');
+          if (logo) {
+            logo.style.display = 'none';
+            logo.style.opacity = '0';
+            logo.style.visibility = 'hidden';
+            logo.style.pointerEvents = 'none';
+            logo.remove();
+          }
+        }
+      } catch(e) {}
+    });
   }
-  setInterval(clearSplineBg, 150);
+  setInterval(clearSplineBg, 100);
 
   function renderOrbLoop() {
     requestAnimationFrame(renderOrbLoop);
