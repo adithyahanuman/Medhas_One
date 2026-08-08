@@ -51,7 +51,7 @@ export class TTSEngine {
   #onQueueEmpty = null; // registered externally for sentence-streaming reset
 
   // ── Preferred female voice names (tried in order) ────────────────────────
-  static #PREFERRED_VOICES = [
+  static #PREFERRED_FEMALE_VOICES = [
     'Google UK English Female',
     'Google US English',
     'Microsoft Jenny Online (Natural)',
@@ -76,19 +76,10 @@ export class TTSEngine {
     }
   }
 
-  // ── Public ─────────────────────────────────────────────────────────────────
-
   get isSupported() {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
   }
 
-  /**
-   * Enqueue `text` for sequential playback.
-   * Callbacks fire for THIS segment only.
-   *
-   * @param {string} text
-   * @param {{ onWord, onAmplitude, onEnd, onError }} callbacks
-   */
   speak(text, { onWord = () => {}, onAmplitude = () => {}, onEnd = () => {}, onError = () => {} } = {}) {
     if (!this.isSupported) {
       onError('SpeechSynthesis is not supported in this browser.');
@@ -99,22 +90,14 @@ export class TTSEngine {
     const cleaned = cleanTextForSpeech(text);
     if (!cleaned) { setTimeout(onEnd, 0); return; }
 
-    // Add to queue
     this.#queue.push({ text: cleaned, cbs: { onWord, onAmplitude, onEnd, onError } });
-
-    // Start processing queue if not already playing
     if (!this.#playing) this.#processQueue();
   }
 
-  /**
-   * Register a callback to fire when the entire queue empties.
-   * Used by assistant.js for sentence-streaming state reset.
-   */
   onQueueEmpty(cb) {
     this.#onQueueEmpty = cb;
   }
 
-  /** Cancel all speech and drain the queue immediately. */
   cancel() {
     this.#queue    = [];
     this.#playing  = false;
@@ -126,12 +109,9 @@ export class TTSEngine {
     if (this.isSupported) window.speechSynthesis.cancel();
   }
 
-  // ── Private: queue processing ─────────────────────────────────────────────
-
   #processQueue() {
     if (this.#queue.length === 0) {
       this.#playing = false;
-      // Fire queue-empty callback then clear it
       const cb = this.#onQueueEmpty;
       this.#onQueueEmpty = null;
       cb?.();
@@ -146,14 +126,13 @@ export class TTSEngine {
   #speakOne(text, { onWord, onAmplitude, onEnd, onError }, onFinished) {
     const utter = new SpeechSynthesisUtterance(text);
 
-    utter.rate   = 1.25; // Faster, natural reading speed
-    utter.pitch  = 1.1;  // Clear female pitch accent
+    utter.rate   = 1.35; // Fast, crisp female reading speed
+    utter.pitch  = 1.15; // Bright female pitch
     utter.volume = 1.0;
 
     const voice = this.#pickVoice();
     if (voice) utter.voice = voice;
 
-    // ── Word boundaries → subtitle sync + synthesised amplitude ─────────────
     utter.onboundary = (e) => {
       if (e.name !== 'word') return;
       const charIdx = e.charIndex;
@@ -167,7 +146,6 @@ export class TTSEngine {
       this.#decayTimer = setTimeout(() => onAmplitude(0.10), 180);
     };
 
-    // ── Chrome background-tab pause bug workaround ──────────────────────────
     clearInterval(this.#resumeTimer);
     this.#resumeTimer = setInterval(() => {
       if (!window.speechSynthesis.speaking) { clearInterval(this.#resumeTimer); return; }
@@ -186,7 +164,7 @@ export class TTSEngine {
     utter.onend = () => {
       cleanup();
       onEnd();
-      onFinished(); // advance queue
+      onFinished();
     };
 
     utter.onerror = (e) => {
@@ -196,23 +174,37 @@ export class TTSEngine {
       } else {
         onError(`TTS error: ${e.error}`);
       }
-      onFinished(); // advance queue even on error
+      onFinished();
     };
 
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
     window.speechSynthesis.speak(utter);
   }
 
-  // ── Private helpers ───────────────────────────────────────────────────────
-
   #pickVoice() {
     if (!this.isSupported) return null;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices.length) return null;
-    for (const name of TTSEngine.#PREFERRED_VOICES) {
-      const v = voices.find(v => v.name.includes(name));
+    let voices = window.speechSynthesis.getVoices();
+    if (!voices || !voices.length) {
+      window.speechSynthesis.getVoices();
+      voices = window.speechSynthesis.getVoices();
+    }
+    if (!voices || !voices.length) return null;
+
+    // 1. Try preferred female list
+    for (const name of TTSEngine.#PREFERRED_FEMALE_VOICES) {
+      const v = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
       if (v) return v;
     }
+
+    // 2. Try any voice with 'female' in name
+    const femaleAny = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'));
+    if (femaleAny) return femaleAny;
+
+    // 3. Fallback: pick any English voice that is NOT explicitly male (David, Mark, George, Male)
+    const MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male'];
+    const nonMaleEn = voices.find(v => v.lang.startsWith('en') && !MALE_NAMES.some(m => v.name.toLowerCase().includes(m)));
+    if (nonMaleEn) return nonMaleEn;
+
     return voices.find(v => v.lang.startsWith('en')) ?? voices[0] ?? null;
   }
 

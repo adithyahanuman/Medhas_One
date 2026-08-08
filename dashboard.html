@@ -972,6 +972,14 @@
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
+    #ai-orb-3d-container,
+    #ai-orb-3d-container spline-viewer {
+      background: transparent !important;
+    }
+    #ai-orb-3d-container spline-viewer::part(canvas),
+    #ai-orb-3d-container canvas {
+      background: transparent !important;
+    }
   </style>
 </head>
 <body>
@@ -1036,7 +1044,7 @@
   <div class="tb-actions">
     <div class="tb-icon-btn" title="Previous Chats (Left Panel)" onclick="togglePanel('left')">📜</div>
     <div class="tb-icon-btn" title="Chat Messages Log (Right Drawer)" onclick="togglePanel('right')">💬</div>
-    <div class="tb-icon-btn" id="theme-toggle-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">🌙</div>
+    <div class="tb-icon-btn" id="theme-toggle-btn" title="Toggle Light/Dark Mode" onclick="window.toggleTheme();">🌙</div>
   </div>
   <div class="tb-sep"></div>
   <a href="signin.html" class="tb-exit" onclick="window.exitApp?.(event)">← Exit</a>
@@ -1673,7 +1681,7 @@ window._deliverReply = function(reply, userText) {
   var wordCount = reply.trim().split(/\s+/).length;
   window._aiSpeaking = true;
   window._aiSpeakAmplitude = Math.min(0.08, 0.03 + wordCount * 0.001);
-  window._aiSpeakDuration = Math.max(2000, wordCount * 140);
+  window._aiSpeakDuration = Math.max(2000, wordCount * 120);
   clearTimeout(window._aiSpeakTimer);
   window._aiSpeakTimer = setTimeout(function() {
     window._aiSpeaking = false;
@@ -1684,14 +1692,30 @@ window._deliverReply = function(reply, userText) {
     var clean = reply.replace(/[*#`_\[\]]/g, '');
     window.speechSynthesis.cancel();
     var utt = new SpeechSynthesisUtterance(clean);
-    utt.rate = 1.25; // Faster reading speed
-    utt.pitch = 1.1; // Female tone
+    utt.rate = 1.35; // Fast, crisp female speech speed
+    utt.pitch = 1.15; // Bright female tone
+    
     var voices = window.speechSynthesis.getVoices();
-    var femaleVoice = voices.find(function(v) {
-      return v.name.includes('Google UK English Female') || v.name.includes('Samantha') ||
-             v.name.includes('Karen') || v.name.includes('Victoria') ||
-             v.name.includes('Zira') || v.name.includes('Jenny') || v.name.includes('Aria');
-    }) || voices.find(function(v) { return v.lang.startsWith('en'); });
+    if (!voices || !voices.length) {
+      window.speechSynthesis.getVoices();
+      voices = window.speechSynthesis.getVoices();
+    }
+    
+    var PREFERRED_FEMALES = ['google uk english female', 'google us english', 'microsoft jenny online (natural)', 'microsoft aria online (natural)', 'microsoft zira', 'samantha', 'karen', 'victoria', 'fiona', 'moira', 'tessa', 'zira', 'female'];
+    var femaleVoice = null;
+    if (voices && voices.length) {
+      for (var i = 0; i < PREFERRED_FEMALES.length; i++) {
+        var match = voices.find(function(v) { return v.name.toLowerCase().includes(PREFERRED_FEMALES[i]); });
+        if (match) { femaleVoice = match; break; }
+      }
+      if (!femaleVoice) {
+        femaleVoice = voices.find(function(v) { return v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'); });
+      }
+      if (!femaleVoice) {
+        var MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male'];
+        femaleVoice = voices.find(function(v) { return v.lang.startsWith('en') && !MALE_NAMES.some(function(m) { return v.name.toLowerCase().includes(m); }); });
+      }
+    }
     if (femaleVoice) utt.voice = femaleVoice;
     utt.onend = function() { window._aiSpeaking = false; window._aiSpeakAmplitude = 0; };
     window.speechSynthesis.speak(utt);
@@ -1923,13 +1947,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Theme button
+  // Load session list immediately
+  if (typeof window.loadSessionList === 'function') {
+    window.loadSessionList();
+  }
+
+  // Sync theme button icon
   var themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) {
-    themeBtn.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      window.toggleTheme();
-    });
     var savedTheme = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
     themeBtn.textContent = savedTheme === 'light' ? '☀️' : '🌙';
   }
@@ -2109,11 +2134,26 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
   let _orbAngle = 0;
   let _smoothScale = 1.0;
 
+  function clearSplineBg() {
+    const splineViewer = document.getElementById('spline-orb-viewer');
+    try {
+      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+        splineViewer.spline._scene.background = null;
+      }
+      if (splineViewer && splineViewer.shadowRoot) {
+        const cv = splineViewer.shadowRoot.querySelector('canvas');
+        if (cv) cv.style.background = 'transparent';
+      }
+    } catch(e) {}
+  }
+  setInterval(clearSplineBg, 150);
+
   function renderOrbLoop() {
     requestAnimationFrame(renderOrbLoop);
     _orbAngle += 0.006; // smooth continuous 3D rotation!
 
     const splineViewer = document.getElementById('spline-orb-viewer');
+    clearSplineBg();
     
     // Continuous 3D Y-rotation directly on Spline _scene
     try {
