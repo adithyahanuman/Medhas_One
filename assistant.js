@@ -466,7 +466,7 @@ export class Assistant {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents,
-              generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
+              generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
             }),
             signal,
           });
