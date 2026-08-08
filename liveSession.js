@@ -66,7 +66,14 @@ export class LiveSessionManager {
     // Determine ws URL
     let wsHost   = location.host || 'localhost:3000';
     let protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (location.protocol === 'file:' || !location.host) {
+    const backendConfig = window.MEDHAS_BACKEND_URL || localStorage.getItem('medhas_backend_url');
+    if (backendConfig) {
+      try {
+        const bUrl = new URL(backendConfig);
+        protocol = bUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsHost = bUrl.host;
+      } catch {}
+    } else if (location.protocol === 'file:' || !location.host) {
       protocol = 'ws:';
       wsHost   = 'localhost:3000';
     }

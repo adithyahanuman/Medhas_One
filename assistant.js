@@ -486,6 +486,9 @@ export class Assistant {
 
   // ── Private: resolve origin ───────────────────────────────────────────────
   #getOrigin() {
+    if (window.MEDHAS_BACKEND_URL) return window.MEDHAS_BACKEND_URL.replace(/\/$/, '');
+    const saved = localStorage.getItem('medhas_backend_url');
+    if (saved) return saved.replace(/\/$/, '');
     return (location.protocol === 'file:' || !location.host)
       ? 'http://localhost:3000'
       : location.origin;
