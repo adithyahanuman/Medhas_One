@@ -400,8 +400,9 @@
       backdrop-filter: blur(20px);
     }
     html[data-theme="light"] .tb-logo {
-      background: linear-gradient(90deg, #4f46e5, #0284c7);
+      background: linear-gradient(90deg, #7fe8ff 0%, #6c63ff 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      filter: drop-shadow(0 0 10px rgba(127,232,255,0.4));
     }
     html[data-theme="light"] .tb-clock,
     html[data-theme="light"] .tb-state {
@@ -1353,8 +1354,8 @@
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
     allLineMaterials.forEach(({ mat, baseColor, baseOpacity }) => {
       if (isLight) {
-        mat.color.setHex(baseColor === C_FAINT ? 0x0284c7 : (baseColor === C_BRIGHT ? 0x0256ea : 0x1d4ed8));
-        mat.opacity = Math.min(1.0, baseOpacity * 2.5);
+        mat.color.setHex(baseColor === C_FAINT ? 0x38bdf8 : (baseColor === C_BRIGHT ? 0x00d2ff : 0x0284c7));
+        mat.opacity = Math.min(0.9, baseOpacity * 2.0);
         mat.blending = THREE.NormalBlending;
       } else {
         mat.color.setHex(baseColor);

@@ -723,8 +723,8 @@ export function createOrbScene(container, { interactive = true } = {}) {
     // Update line materials dynamically for high-contrast Electric Blue in Light Mode
     allLineMaterials.forEach(({ mat, baseColor, baseOpacity }) => {
       if (isLight) {
-        mat.color.setHex(baseColor === C_FAINT ? 0x0284c7 : (baseColor === C_BRIGHT ? 0x0256ea : 0x1d4ed8));
-        mat.opacity = Math.min(1.0, baseOpacity * 2.5);
+        mat.color.setHex(baseColor === C_FAINT ? 0x38bdf8 : (baseColor === C_BRIGHT ? 0x00d2ff : 0x0284c7));
+        mat.opacity = Math.min(0.9, baseOpacity * 2.0);
         mat.blending = THREE.NormalBlending;
       } else {
         mat.color.setHex(baseColor);
