@@ -219,7 +219,7 @@
       background: var(--bg);
     }
     [data-theme="light"] #hero {
-      background: linear-gradient(145deg, #0d0630 0%, #1a0a4a 25%, #12063a 50%, #0a1540 75%, #060e30 100%);
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #e0f2fe 100%);
     }
 
     /* Gradient mesh background */
@@ -238,10 +238,9 @@
     }
     [data-theme="light"] .hero-mesh::before {
       background:
-        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(139,92,255,0.35) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(56,189,248,0.25) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 60% at 60% 10%, rgba(167,139,250,0.28) 0%, transparent 60%),
-        radial-gradient(ellipse 70% 40% at 50% 90%, rgba(91,33,250,0.2) 0%, transparent 60%);
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(5,150,105,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(56,189,248,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 60% 10%, rgba(2,132,199,0.1) 0%, transparent 60%);
     }
 
     /* 3D orb canvas */
@@ -249,7 +248,7 @@
       position: absolute; inset: 0; z-index: 1;
       background: transparent; pointer-events: none;
     }
-    [data-theme="light"] #hero-orb-container { opacity: 0.85; }
+    [data-theme="light"] #hero-orb-container { opacity: 0.95; }
     #hero-orb-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
     /* Vignette */
@@ -258,7 +257,7 @@
       background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, var(--bg) 100%);
     }
     [data-theme="light"] .hero-vignette {
-      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, #060e30 100%);
+      background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, rgba(236,253,245,0.95) 100%);
     }
 
     /* Scan lines */
@@ -296,11 +295,10 @@
       margin-bottom: 2rem;
       backdrop-filter: blur(10px);
     }
-    /* Badge in light theme sits on dark hero — keep it bright */
     [data-theme="light"] .hero-badge {
-      background: rgba(139,92,255,0.15);
-      border-color: rgba(167,139,250,0.5);
-      color: #c4b5fd;
+      background: rgba(5,150,105,0.1);
+      border-color: rgba(5,150,105,0.35);
+      color: #047857;
     }
     .badge-dot {
       width: 6px; height: 6px; border-radius: 50%;
@@ -333,15 +331,14 @@
     }
     [data-theme="light"] .hero-title {
       background: linear-gradient(135deg,
-        #c4b5fd 0%,
-        #a78bfa 30%,
-        #38bdf8 65%,
-        rgba(56,189,248,0.6) 100%
+        #022c22 0%,
+        #047857 40%,
+        #0284c7 80%
       );
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      filter: drop-shadow(0 0 60px rgba(139,92,255,0.5));
+      filter: drop-shadow(0 10px 30px rgba(4,120,87,0.15));
     }
 
     /* Hero subtitle row */
@@ -354,11 +351,11 @@
       text-transform: uppercase;
       margin-bottom: 1.8rem;
     }
-    [data-theme="light"] .hero-sub-row { color: rgba(200, 180, 255, 0.6); }
-    [data-theme="light"] .hero-sub-row span { color: #a78bfa; }
+    [data-theme="light"] .hero-sub-row { color: #047857; }
+    [data-theme="light"] .hero-sub-row span { color: #0284c7; }
     .hero-sub-row span { color: var(--accent-2); }
     .hero-sub-sep { width: 40px; height: 1px; background: var(--border-bright); }
-    [data-theme="light"] .hero-sub-sep { background: rgba(167,139,250,0.4); }
+    [data-theme="light"] .hero-sub-sep { background: rgba(5,150,105,0.3); }
 
     /* Hero description */
     .hero-desc {
@@ -369,7 +366,7 @@
       margin-bottom: 2.5rem;
       font-weight: 400;
     }
-    [data-theme="light"] .hero-desc { color: rgba(220, 210, 255, 0.85); }
+    [data-theme="light"] .hero-desc { color: #064e3b; font-weight: 500; }
 
     /* Hero CTA */
     .hero-cta {
@@ -393,6 +390,11 @@
       transform: translateY(-2px);
       box-shadow: 0 8px 40px var(--accent-glow);
     }
+    [data-theme="light"] #hero .btn-primary {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 30px rgba(4,120,87,0.25);
+    }
     .btn-outline {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 14px 32px;
@@ -407,16 +409,17 @@
       backdrop-filter: blur(10px);
       transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, color 0.2s;
     }
-    /* In light theme the hero is dark — keep outline btn bright */
     [data-theme="light"] #hero .btn-outline {
-      border-color: rgba(167,139,250,0.55);
-      color: rgba(220,210,255,0.9);
-      background: rgba(139,92,255,0.1);
+      border-color: rgba(5,150,105,0.35);
+      color: #047857;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 4px 20px rgba(4,120,87,0.08);
     }
     [data-theme="light"] #hero .btn-outline:hover {
-      border-color: #a78bfa;
-      color: #c4b5fd;
-      box-shadow: 0 4px 24px rgba(139,92,255,0.3);
+      border-color: #047857;
+      color: #022c22;
+      background: rgba(5,150,105,0.12);
+      box-shadow: 0 6px 25px rgba(4,120,87,0.18);
     }
     .btn-outline:hover {
       transform: translateY(-2px);
@@ -439,10 +442,15 @@
       transition: border-color 0.3s, transform 0.3s;
     }
     [data-theme="light"] .h-stat {
-      background: rgba(139, 92, 255, 0.12);
-      border: 1px solid rgba(139, 92, 255, 0.25);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(5, 150, 105, 0.25);
+      box-shadow: 0 8px 30px rgba(4, 120, 87, 0.08);
     }
-    [data-theme="light"] .h-stat:hover { border-color: rgba(139, 92, 255, 0.55); }
+    [data-theme="light"] .h-stat:hover {
+      border-color: rgba(5, 150, 105, 0.6);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(4, 120, 87, 0.15);
+    }
     .h-stat:hover { border-color: var(--border-bright); transform: translateY(-3px); }
     .h-stat-val {
       font-family: var(--mono);
@@ -452,14 +460,14 @@
       line-height: 1;
       margin-bottom: 4px;
     }
-    [data-theme="light"] .h-stat-val { color: #c4b5fd; }
+    [data-theme="light"] .h-stat-val { color: #047857; }
     .h-stat-label {
       font-size: 10px;
       color: var(--text-3);
       text-transform: uppercase;
       letter-spacing: 1.5px;
     }
-    [data-theme="light"] .h-stat-label { color: rgba(200, 180, 255, 0.55); }
+    [data-theme="light"] .h-stat-label { color: #065f46; }
 
     /* Scroll indicator */
     .scroll-indicator {
