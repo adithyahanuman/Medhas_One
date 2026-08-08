@@ -992,9 +992,9 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- 3D AI Orb Scene — Native Three.js + SplineLoader Canvas -->
+<!-- 3D AI Orb Scene — Spline Viewer (scene_ai_orb.splinecode from scene (2).splinecode) -->
 <div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:10; pointer-events:none; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-  <canvas id="orb-canvas" style="width:100%; height:100%; display:block; background:transparent !important;"></canvas>
+  <spline-viewer id="spline-orb-viewer" url="./scene_ai_orb.splinecode" loading-anim-type="none" style="width:100%; height:100%; display:block; background:transparent !important;"></spline-viewer>
 </div>
 
 <!-- Orb -->
@@ -2273,90 +2273,81 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     NATIVE THREE.JS + SPLINE LOADER 3D ORB RENDERER & ANIMATOR
-     Renders the 3D Orb model directly via WebGL with 100% transparent canvas.
-     No hardcoded light blue backgrounds, no glitched colors, zero wobble!
+     REACTIVE 3D AI ORB ROTATION & VOICE EXPANSION/CONTRACTION CONTROLLER
+     Continuously rotates the 3D Orb on Y-axis and expands/contracts
+     smoothly in real-time response to AI speech intensity (No container wobble)
 ════════════════════════════════════════════════════════════════════════ -->
-<script type="module">
-import * as THREE from 'three';
-import SplineLoader from '@splinetool/loader';
-
+<script>
 (function(){
-  const canvas = document.getElementById('orb-canvas');
-  if (!canvas) return;
-
-  const scene = new THREE.Scene();
-  scene.background = null; // 100% Transparent WebGL canvas background!
-
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 0, 800);
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 0);
-
-  let orbGroup = null;
-  const loader = new SplineLoader();
-
-  loader.load('./scene_ai_orb.splinecode', (splineScene) => {
-    splineScene.background = null;
-    splineScene.traverse((child) => {
-      if (child.isMesh && child.name && (
-        child.name.toLowerCase().includes('bg') ||
-        child.name.toLowerCase().includes('background') ||
-        child.name.toLowerCase().includes('plane') ||
-        child.name.toLowerCase().includes('rectangle')
-      )) {
-        child.visible = false;
-      }
-    });
-    scene.add(splineScene);
-    orbGroup = splineScene;
-  });
-
   let _orbAngle = 0;
   let _smoothScale = 1.0;
 
-  function renderLoop() {
-    requestAnimationFrame(renderLoop);
-    _orbAngle += 0.006;
+  function configureSplineOrb() {
+    const viewer = document.getElementById('spline-orb-viewer');
+    if (!viewer) return;
+    try {
+      if (viewer.spline && viewer.spline._scene) {
+        viewer.spline._scene.background = null;
+      }
+      if (viewer.spline && viewer.spline._renderer) {
+        viewer.spline._renderer.setClearColor(0x000000, 0);
+      }
+      if (viewer.shadowRoot) {
+        const cv = viewer.shadowRoot.querySelector('canvas');
+        if (cv) cv.style.background = 'transparent';
+      }
+    } catch(e) {}
+  }
 
-    if (orbGroup) {
-      orbGroup.rotation.y = _orbAngle;
-    }
+  function renderOrbLoop() {
+    requestAnimationFrame(renderOrbLoop);
+    _orbAngle += 0.006; // smooth continuous 3D rotation!
 
+    const splineViewer = document.getElementById('spline-orb-viewer');
+    configureSplineOrb();
+
+    // Continuous 3D Y-rotation directly on Spline _scene
+    try {
+      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
+        splineViewer.spline._scene.background = null;
+        splineViewer.spline._scene.rotation.y = _orbAngle;
+      }
+    } catch(e) {}
+
+    // Compute target scale expansion & contraction based on speech intensity
     const state = window.__currentState || 'idle';
     const spkAmp = window._aiSpeakAmplitude || 0;
     const isSpeaking = window._aiSpeaking || state === 'speaking';
 
     let targetScale = 1.0;
     if (isSpeaking) {
+      // Expands & contracts dynamically with AI voice intensity spikes!
       targetScale = 1.0 + Math.min(0.40, Math.max(spkAmp * 0.45, 0.12));
     } else if (state === 'listening') {
       targetScale = 1.03 + Math.sin(_orbAngle * 4) * 0.02;
     } else if (state === 'thinking') {
       targetScale = 1.04 + Math.sin(_orbAngle * 8) * 0.03;
     } else {
+      // Natural gentle breathing pulse at rest
       targetScale = 1.0 + Math.sin(_orbAngle * 2) * 0.008;
     }
 
     _smoothScale += (targetScale - _smoothScale) * 0.12;
 
-    if (orbGroup) {
-      orbGroup.scale.set(_smoothScale, _smoothScale, _smoothScale);
+    // Apply scale expansion & contraction ONLY (no position translation / container wobble)
+    if (splineViewer) {
+      splineViewer.style.transform = `scale(${_smoothScale.toFixed(3)})`;
+      splineViewer.style.transformOrigin = 'center center';
     }
-
-    renderer.render(scene, camera);
   }
 
-  renderLoop();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+  const viewer = document.getElementById('spline-orb-viewer');
+  if (viewer) {
+    viewer.addEventListener('load', () => {
+      configureSplineOrb();
+    });
+  }
+  renderOrbLoop();
 })();
 </script>
 </body>
