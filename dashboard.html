@@ -972,15 +972,17 @@
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
-    #ai-orb-3d-container,
-    #ai-orb-3d-container spline-viewer {
+    /* 3D Orb Theme Palettes */
+    html[data-theme="dark"] #ai-orb-3d-container spline-viewer,
+    html:not([data-theme="light"]) #ai-orb-3d-container spline-viewer {
+      filter: invert(0.92) hue-rotate(185deg) contrast(1.25) brightness(0.85) !important;
+      mix-blend-mode: screen !important;
       background: transparent !important;
-      mix-blend-mode: normal !important;
-      filter: none !important;
     }
     html[data-theme="light"] #ai-orb-3d-container spline-viewer {
+      filter: brightness(1.02) contrast(1.05) !important;
       mix-blend-mode: normal !important;
-      filter: brightness(1.05) contrast(1.05) !important;
+      background: transparent !important;
     }
     #ai-orb-3d-container spline-viewer::part(canvas),
     #ai-orb-3d-container canvas {
