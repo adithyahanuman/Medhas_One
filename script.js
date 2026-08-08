@@ -720,7 +720,7 @@ function animate() {
     });
 
     if (isLight) {
-      scene.background = new THREE.Color(0xecfdf5);
+      scene.background = new THREE.Color(0xf8fafc);
       renderer.render(scene, camera);
     } else {
       scene.background = null;
