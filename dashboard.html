@@ -1948,18 +1948,20 @@ window.onSessionDelete = async (sessionId) => {
 };
 
 // ── Light / Dark Theme Toggle Controls ──────────────────────────────────────────
-window.toggleTheme = () => {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
+  html.setAttribute('data-theme', next);
   localStorage.setItem('medhas-theme', next);
   localStorage.setItem('medhas_theme', next);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
-  showToast(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode activated`, 1800);
-};
+  showToast(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode activated`, 1500);
+}
+window.toggleTheme = toggleTheme;
 
-// Initialize saved theme
+// Initialize saved theme immediately
 (function initTheme() {
   const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
@@ -1972,7 +1974,7 @@ window.toggleTheme = () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Called by onclick="sendMessage()" and Enter key. */
-window.sendMessage = () => {
+function sendMessage() {
   const inp  = document.getElementById('chat-input');
   const text = (inp?.value ?? '').trim();
   if (!text) return;
@@ -1991,29 +1993,38 @@ window.sendMessage = () => {
   if (window.assistant) {
     window.assistant.submit(text);
   } else {
-    console.warn('[SendMessage] Assistant module loading, retrying submit...');
-    setTimeout(() => window.assistant?.submit(text), 400);
+    console.warn('[SendMessage] Assistant module loading, waiting to submit...');
+    const retryInterval = setInterval(() => {
+      if (window.assistant) {
+        clearInterval(retryInterval);
+        window.assistant.submit(text);
+      }
+    }, 100);
+    setTimeout(() => clearInterval(retryInterval), 4000);
   }
-};
+}
+window.sendMessage = sendMessage;
 
 /** Called by onkeydown="handleKey(event)". */
-window.handleKey = (e) => {
+function handleKey(e) {
   if (e && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     e.stopPropagation();
-    window.sendMessage();
+    sendMessage();
+    return false;
   }
-};
+}
+window.handleKey = handleKey;
 
 /** Called by onclick="toggleMic()". */
-window.toggleMic = () => {
+function toggleMic() {
   const btn = document.getElementById('mic-btn');
   if (_micDisabled) {
-    showToast('Microphone input is disabled', 2500);
+    showToast('Microphone input is disabled in browser settings', 2500);
     return;
   }
   if (!window.assistant) {
-    showToast('Voice assistant loading, please try again...', 2000);
+    showToast('Voice assistant initializing, please click again in a moment...', 2000);
     return;
   }
 
@@ -2027,7 +2038,8 @@ window.toggleMic = () => {
     window.assistant.interrupt();
     _resetMicBtn();
   }
-};
+}
+window.toggleMic = toggleMic;
 
 /** Toggle globe button visually */
 window.toggleGlobe = (btn) => {
@@ -2056,7 +2068,7 @@ window.useSuggestion = (el) => {
     inp.value = el.textContent;
     window.onInputChange();
   }
-  window.sendMessage();
+  sendMessage();
 };
 
 /** Called by right-panel quick action buttons. */
@@ -2066,7 +2078,7 @@ window.quickCmd = (text) => {
     inp.value = text;
     window.onInputChange();
   }
-  window.sendMessage();
+  sendMessage();
 };
 
 // oninput handler — show/hide suggestions based on input content
@@ -2115,25 +2127,53 @@ window.exitApp = (e) => {
   }, 300);
 };
 
-// Direct listeners setup
-document.addEventListener('DOMContentLoaded', () => {
+// Event listeners wiring
+function initDashboardControls() {
   const chatInput = document.getElementById('chat-input');
   if (chatInput) {
-    chatInput.addEventListener('keydown', (e) => {
+    chatInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        window.sendMessage();
+        sendMessage();
+        return false;
       }
     });
   }
 
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) {
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
     const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
-    btn.textContent = saved === 'light' ? '☀️' : '🌙';
+    document.documentElement.setAttribute('data-theme', saved);
+    themeBtn.textContent = saved === 'light' ? '☀️' : '🌙';
+    themeBtn.onclick = function(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      toggleTheme();
+    };
   }
-});
+
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn) {
+    sendBtn.onclick = function(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      sendMessage();
+    };
+  }
+
+  const micBtn = document.getElementById('mic-btn');
+  if (micBtn) {
+    micBtn.onclick = function(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      toggleMic();
+    };
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboardControls);
+} else {
+  initDashboardControls();
+}
 
 // Safely initialize assistant
 try {
