@@ -615,17 +615,8 @@
        AI RESPONSE BUBBLE
     ═══════════════════════════════════════ */
     #ai-bubble {
-      position: fixed; bottom: 108px; left: 50%; transform: translateX(-50%) translateY(12px);
-      z-index: 80; max-width: min(560px, 88vw); width: 100%;
-      background: rgba(5,8,28,0.78);
-      backdrop-filter: blur(28px);
-      border: 1px solid rgba(127,232,255,0.18);
-      border-radius: 20px; padding: 18px 24px;
-      opacity: 0; transition: all 0.45s cubic-bezier(0.34,1.56,0.64,1);
-      pointer-events: none;
-      box-shadow: 0 8px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(127,232,255,0.05);
+      display: none !important;
     }
-    #ai-bubble.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
     .bubble-header {
       display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
     }
