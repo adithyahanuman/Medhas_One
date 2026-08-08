@@ -4,24 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MEDHAS — AI Interface</title>
-  <script>
-    // WebGL clearColor patch — intercepts Spline light blue/white scene clear calls at GPU level
-    (function() {
-      function patchProto(proto) {
-        if (!proto || proto._patchedClear) return;
-        proto._patchedClear = true;
-        const origClear = proto.clearColor;
-        proto.clearColor = function(r, g, b, a) {
-          if (r > 0.35 && g > 0.35 && b > 0.35) {
-            return origClear.call(this, 0, 0, 0, 0);
-          }
-          return origClear.call(this, r, g, b, a);
-        };
-      }
-      if (typeof WebGLRenderingContext !== 'undefined') patchProto(WebGLRenderingContext.prototype);
-      if (typeof WebGL2RenderingContext !== 'undefined') patchProto(WebGL2RenderingContext.prototype);
-    })();
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -997,8 +979,8 @@
       filter: none !important;
     }
     html[data-theme="light"] #ai-orb-3d-container spline-viewer {
-      mix-blend-mode: multiply !important;
-      filter: invert(1) hue-rotate(180deg) !important;
+      mix-blend-mode: normal !important;
+      filter: brightness(1.05) contrast(1.05) !important;
     }
     #ai-orb-3d-container spline-viewer::part(canvas),
     #ai-orb-3d-container canvas {
@@ -2290,41 +2272,13 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
   function clearSplineBg() {
     const splineViewer = document.getElementById('spline-orb-viewer');
     try {
-      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-        const scene = splineViewer.spline._scene;
-        scene.background = null;
-        scene.traverse((obj) => {
-          if (obj.name && (
-            obj.name.toLowerCase().includes('bg') ||
-            obj.name.toLowerCase().includes('background') ||
-            obj.name.toLowerCase().includes('plane') ||
-            obj.name.toLowerCase().includes('rectangle') ||
-            obj.name.toLowerCase().includes('floor') ||
-            obj.name.toLowerCase().includes('wall') ||
-            obj.name.toLowerCase().includes('sky')
-          )) {
-            obj.visible = false;
-          }
-          if (obj.isMesh && obj.material) {
-            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-            mats.forEach(mat => {
-              if (mat && mat.color) {
-                const { r, g, b } = mat.color;
-                if (r > 0.65 && g > 0.75 && b > 0.85 && (Math.abs(obj.position.z) > 5 || (obj.scale && obj.scale.x > 50))) {
-                  obj.visible = false;
-                }
-              }
-            });
-          }
-        });
-      }
       if (splineViewer && splineViewer.shadowRoot) {
         const cv = splineViewer.shadowRoot.querySelector('canvas');
         if (cv) cv.style.background = 'transparent';
       }
     } catch(e) {}
   }
-  setInterval(clearSplineBg, 100);
+  setInterval(clearSplineBg, 150);
 
   function renderOrbLoop() {
     requestAnimationFrame(renderOrbLoop);
