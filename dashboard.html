@@ -2329,24 +2329,26 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
 
-    // Ambient & Directional Lighting matching Image 2 reflections
-    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Ambient & Directional Lighting matching photo specular reflections
+    const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
     scene.add(ambLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 3.0);
-    dirLight1.position.set(300, 400, 500);
+    // Top key light creating sharp white specular highlights on liquid wave ridges
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 4.5);
+    dirLight1.position.set(0, 600, 400);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 2.5);
-    dirLight2.position.set(-300, -200, 400);
+    // Bottom cyan fill light creating soft bottom rim glow
+    const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 2.8);
+    dirLight2.position.set(0, -500, 300);
     scene.add(dirLight2);
 
-    // 1. Inner Bright Glowing Core (White + Cyan gradient bottom)
-    const coreGeo = new THREE.SphereGeometry(105, 64, 64);
+    // 1. Inner Bright Glowing Core (Pure White + Cyan Emissive Glow)
+    const coreGeo = new THREE.SphereGeometry(110, 64, 64);
     const coreMat = new THREE.MeshPhongMaterial({
       color: 0xffffff,
       emissive: 0x38bdf8,
-      emissiveIntensity: 0.85,
+      emissiveIntensity: 1.1,
       specular: 0xffffff,
       shininess: 100,
       transparent: false
@@ -2355,31 +2357,30 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
     scene.add(coreMesh);
 
     // 2. Subtle Dotted Grid Matrix over the inner core
-    const gridGeo = new THREE.SphereGeometry(107, 38, 38);
+    const gridGeo = new THREE.SphereGeometry(112, 42, 42);
     const gridMat = new THREE.PointsMaterial({
-      color: 0x38bdf8,
+      color: 0x7dd3fc,
       size: 2.2,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.70,
       blending: THREE.AdditiveBlending
     });
     const gridPoints = new THREE.Points(gridGeo, gridMat);
     scene.add(gridPoints);
 
-    // 3. Outer Organic Liquid Glass Wavy Cloud Shell (Exact Image 2 Glass Waves)
-    const shellGeo = new THREE.SphereGeometry(148, 64, 64);
+    // 3. Outer Smoked Chrome Liquid Glass Wavy Shell (Exact Photo Match)
+    const shellGeo = new THREE.SphereGeometry(158, 96, 96);
     const shellPosAttr = shellGeo.attributes.position;
     const origShellPositions = shellPosAttr.array.slice();
 
-    const shellMat = new THREE.MeshPhongMaterial({
-      color: 0x64748b,
-      emissive: 0x0f172a,
-      emissiveIntensity: 0.2,
-      specular: 0xffffff,
-      shininess: 80,
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.12,
+      metalness: 0.40,
       transparent: true,
-      opacity: 0.45,
-      flatShading: true
+      opacity: 0.78,
+      side: THREE.DoubleSide,
+      flatShading: false
     });
     const shellMesh = new THREE.Mesh(shellGeo, shellMat);
     scene.add(shellMesh);
@@ -2392,14 +2393,14 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
         coreMat.color.setHex(0xffffff);
         coreMat.emissive.setHex(0x0284c7);
         gridMat.color.setHex(0x0284c7);
-        shellMat.color.setHex(0x94a3b8);
-        shellMat.opacity = 0.40;
+        shellMat.color.setHex(0x64748b);
+        shellMat.opacity = 0.65;
       } else {
         coreMat.color.setHex(0xffffff);
         coreMat.emissive.setHex(0x38bdf8);
         gridMat.color.setHex(0x38bdf8);
-        shellMat.color.setHex(0x475569);
-        shellMat.opacity = 0.50;
+        shellMat.color.setHex(0x334155);
+        shellMat.opacity = 0.78;
       }
     };
 
@@ -2408,14 +2409,14 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 
     function animate() {
       requestAnimationFrame(animate);
-      time += 0.012;
+      time += 0.010;
 
-      // Real-time undulating liquid wave deformation of outer shell
+      // Organic undulating liquid wave deformation of outer shell matching photo ripples
       const state = window.__currentState || 'idle';
       const spkAmp = window._aiSpeakAmplitude || 0;
       const isSpeaking = window._aiSpeaking || state === 'speaking';
-      const waveFreq = isSpeaking ? 0.06 : (state === 'listening' ? 0.04 : 0.03);
-      const waveAmp = isSpeaking ? 16.0 + spkAmp * 35.0 : (state === 'thinking' ? 12.0 : 8.0);
+      const waveFreq = isSpeaking ? 0.05 : (state === 'listening' ? 0.035 : 0.025);
+      const waveAmp = isSpeaking ? 18.0 + spkAmp * 35.0 : (state === 'thinking' ? 14.0 : 10.0);
 
       for (let i = 0; i < shellPosAttr.count; i++) {
         const u = origShellPositions[i * 3];
@@ -2423,17 +2424,20 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
         const w = origShellPositions[i * 3 + 2];
         const distance = Math.sqrt(u * u + v * v + w * w);
 
-        const offset = Math.sin(u * waveFreq + time * 2) * Math.cos(v * waveFreq + time * 1.5) * waveAmp;
-        const factor = (distance + offset) / distance;
+        const noise1 = Math.sin(u * waveFreq + time * 1.5) * Math.cos(v * waveFreq + time * 1.2);
+        const noise2 = Math.sin(w * (waveFreq * 1.2) - time * 1.8) * Math.cos(u * (waveFreq * 1.2) + time);
+        const offset = (noise1 + noise2 * 0.5) * waveAmp;
 
+        const factor = (distance + offset) / distance;
         shellPosAttr.setXYZ(i, u * factor, v * factor, w * factor);
       }
       shellPosAttr.needsUpdate = true;
+      shellGeo.computeVertexNormals(); // Recalculate light specular highlights on undulating wave ridges!
 
       // Smooth continuous 3D rotations
-      coreMesh.rotation.y += 0.005;
-      gridPoints.rotation.y += 0.007;
-      shellMesh.rotation.y += 0.003;
+      coreMesh.rotation.y += 0.004;
+      gridPoints.rotation.y += 0.006;
+      shellMesh.rotation.y += 0.002;
       shellMesh.rotation.x += 0.001;
 
       // Scale expansion & contraction driven by voice speech intensity
