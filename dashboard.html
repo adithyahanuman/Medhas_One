@@ -1000,9 +1000,9 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- 3D AI Orb Scene — Spline Viewer (scene_ai_orb.splinecode from scene (2).splinecode) -->
+<!-- Native 3D AI Orb Scene Canvas (Instant 0ms load, zero loading spinners, exact Image 2 design) -->
 <div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:10; pointer-events:none; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-  <spline-viewer id="spline-orb-viewer" url="./scene_ai_orb.splinecode" loading-anim-type="none" style="width:100%; height:100%; display:block; background:transparent !important;"></spline-viewer>
+  <canvas id="orb-canvas" style="width:100%; height:100%; display:block; background:transparent !important;"></canvas>
 </div>
 
 <!-- Orb -->
@@ -2307,90 +2307,171 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     REACTIVE 3D AI ORB ROTATION & VOICE EXPANSION/CONTRACTION CONTROLLER
-     Continuously rotates the original 3D Orb on Y-axis and expands/contracts
-     smoothly in real-time response to AI speech intensity (Exact Image 2 Orb)
+     INSTANT 3D AI ORB RENDERER (NATIVE THREE.JS — EXACT IMAGE 2 DESIGN)
+     0ms instantaneous load time, 100% transparent canvas, zero loading spinner,
+     wavy organic liquid glass shell surrounding bright white & cyan glowing core!
 ════════════════════════════════════════════════════════════════════════ -->
 <script>
-(function(){
-  let _orbAngle = 0;
-  let _smoothScale = 1.0;
+(function() {
+  function initExact3DOrb() {
+    const canvas = document.getElementById('orb-canvas');
+    if (!canvas || !window.THREE) return;
 
-  function clearSplineBg() {
-    document.querySelectorAll('spline-viewer').forEach(splineViewer => {
-      try {
-        if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-          splineViewer.spline._scene.background = null;
-        }
-        if (splineViewer && splineViewer.shadowRoot) {
-          const cv = splineViewer.shadowRoot.querySelector('canvas');
-          if (cv) cv.style.background = 'transparent';
+    const THREE = window.THREE;
+    const scene = new THREE.Scene();
+    scene.background = null; // 100% Crystal Clear Transparent Canvas!
 
-          // Permanently remove "Built with Spline" watermark logo badge
-          const logo = splineViewer.shadowRoot.querySelector('#logo') || 
-                       splineViewer.shadowRoot.querySelector('a[href*="spline"]') ||
-                       splineViewer.shadowRoot.querySelector('.watermark') ||
-                       splineViewer.shadowRoot.querySelector('#logo-link');
-          if (logo) {
-            logo.style.display = 'none';
-            logo.style.opacity = '0';
-            logo.style.visibility = 'hidden';
-            logo.style.pointerEvents = 'none';
-            logo.remove();
-          }
-        }
-      } catch(e) {}
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 600);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    // Ambient & Directional Lighting matching Image 2 reflections
+    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 3.0);
+    dirLight1.position.set(300, 400, 500);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 2.5);
+    dirLight2.position.set(-300, -200, 400);
+    scene.add(dirLight2);
+
+    // 1. Inner Bright Glowing Core (White + Cyan gradient bottom)
+    const coreGeo = new THREE.SphereGeometry(105, 64, 64);
+    const coreMat = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.85,
+      specular: 0xffffff,
+      shininess: 100,
+      transparent: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(coreMesh);
+
+    // 2. Subtle Dotted Grid Matrix over the inner core
+    const gridGeo = new THREE.SphereGeometry(107, 38, 38);
+    const gridMat = new THREE.PointsMaterial({
+      color: 0x38bdf8,
+      size: 2.2,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending
+    });
+    const gridPoints = new THREE.Points(gridGeo, gridMat);
+    scene.add(gridPoints);
+
+    // 3. Outer Organic Liquid Glass Wavy Cloud Shell (Exact Image 2 Glass Waves)
+    const shellGeo = new THREE.SphereGeometry(148, 64, 64);
+    const shellPosAttr = shellGeo.attributes.position;
+    const origShellPositions = shellPosAttr.array.slice();
+
+    const shellMat = new THREE.MeshPhongMaterial({
+      color: 0x64748b,
+      emissive: 0x0f172a,
+      emissiveIntensity: 0.2,
+      specular: 0xffffff,
+      shininess: 80,
+      transparent: true,
+      opacity: 0.45,
+      flatShading: true
+    });
+    const shellMesh = new THREE.Mesh(shellGeo, shellMat);
+    scene.add(shellMesh);
+
+    // Theme Color Synchronizer
+    window.updateOrbThemeColors = function() {
+      const isLight = (document.documentElement.getAttribute('data-theme') === 'light') ||
+                      (document.body && document.body.getAttribute('data-theme') === 'light');
+      if (isLight) {
+        coreMat.color.setHex(0xffffff);
+        coreMat.emissive.setHex(0x0284c7);
+        gridMat.color.setHex(0x0284c7);
+        shellMat.color.setHex(0x94a3b8);
+        shellMat.opacity = 0.40;
+      } else {
+        coreMat.color.setHex(0xffffff);
+        coreMat.emissive.setHex(0x38bdf8);
+        gridMat.color.setHex(0x38bdf8);
+        shellMat.color.setHex(0x475569);
+        shellMat.opacity = 0.50;
+      }
+    };
+
+    let time = 0;
+    let smoothScale = 1.0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.012;
+
+      // Real-time undulating liquid wave deformation of outer shell
+      const state = window.__currentState || 'idle';
+      const spkAmp = window._aiSpeakAmplitude || 0;
+      const isSpeaking = window._aiSpeaking || state === 'speaking';
+      const waveFreq = isSpeaking ? 0.06 : (state === 'listening' ? 0.04 : 0.03);
+      const waveAmp = isSpeaking ? 16.0 + spkAmp * 35.0 : (state === 'thinking' ? 12.0 : 8.0);
+
+      for (let i = 0; i < shellPosAttr.count; i++) {
+        const u = origShellPositions[i * 3];
+        const v = origShellPositions[i * 3 + 1];
+        const w = origShellPositions[i * 3 + 2];
+        const distance = Math.sqrt(u * u + v * v + w * w);
+
+        const offset = Math.sin(u * waveFreq + time * 2) * Math.cos(v * waveFreq + time * 1.5) * waveAmp;
+        const factor = (distance + offset) / distance;
+
+        shellPosAttr.setXYZ(i, u * factor, v * factor, w * factor);
+      }
+      shellPosAttr.needsUpdate = true;
+
+      // Smooth continuous 3D rotations
+      coreMesh.rotation.y += 0.005;
+      gridPoints.rotation.y += 0.007;
+      shellMesh.rotation.y += 0.003;
+      shellMesh.rotation.x += 0.001;
+
+      // Scale expansion & contraction driven by voice speech intensity
+      let targetScale = 1.0;
+      if (isSpeaking) {
+        targetScale = 1.0 + Math.min(0.40, Math.max(spkAmp * 0.45, 0.12));
+      } else if (state === 'listening') {
+        targetScale = 1.03 + Math.sin(time * 3) * 0.02;
+      } else if (state === 'thinking') {
+        targetScale = 1.04 + Math.sin(time * 6) * 0.03;
+      } else {
+        targetScale = 1.0 + Math.sin(time * 1.5) * 0.008;
+      }
+
+      smoothScale += (targetScale - smoothScale) * 0.12;
+
+      coreMesh.scale.set(smoothScale, smoothScale, smoothScale);
+      gridPoints.scale.set(smoothScale, smoothScale, smoothScale);
+      shellMesh.scale.set(smoothScale, smoothScale, smoothScale);
+
+      window.updateOrbThemeColors();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     });
   }
-  setInterval(clearSplineBg, 100);
 
-  function renderOrbLoop() {
-    requestAnimationFrame(renderOrbLoop);
-    _orbAngle += 0.006; // smooth continuous 3D rotation!
-
-    const splineViewer = document.getElementById('spline-orb-viewer');
-    clearSplineBg();
-
-    // Continuous 3D Y-rotation directly on Spline _scene
-    try {
-      if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-        splineViewer.spline._scene.background = null;
-        splineViewer.spline._scene.rotation.y = _orbAngle;
-      }
-    } catch(e) {}
-
-    // Compute target scale expansion & contraction based on speech intensity
-    const state = window.__currentState || 'idle';
-    const spkAmp = window._aiSpeakAmplitude || 0;
-    const isSpeaking = window._aiSpeaking || state === 'speaking';
-
-    let targetScale = 1.0;
-    if (isSpeaking) {
-      // Expands & contracts dynamically with AI voice intensity spikes!
-      targetScale = 1.0 + Math.min(0.40, Math.max(spkAmp * 0.45, 0.12));
-    } else if (state === 'listening') {
-      targetScale = 1.03 + Math.sin(_orbAngle * 4) * 0.02;
-    } else if (state === 'thinking') {
-      targetScale = 1.04 + Math.sin(_orbAngle * 8) * 0.03;
-    } else {
-      // Natural gentle breathing pulse at rest
-      targetScale = 1.0 + Math.sin(_orbAngle * 2) * 0.008;
-    }
-
-    _smoothScale += (targetScale - _smoothScale) * 0.12;
-
-    // Apply scale expansion & contraction ONLY (no position translation / container wobble)
-    if (splineViewer) {
-      splineViewer.style.transform = `scale(${_smoothScale.toFixed(3)})`;
-      splineViewer.style.transformOrigin = 'center center';
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initExact3DOrb);
+  } else {
+    initExact3DOrb();
   }
-
-  const viewer = document.getElementById('spline-orb-viewer');
-  if (viewer) {
-    viewer.addEventListener('load', renderOrbLoop);
-  }
-  renderOrbLoop();
 })();
 </script>
 </body>
