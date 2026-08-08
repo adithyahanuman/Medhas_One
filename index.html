@@ -1404,16 +1404,21 @@
       });
 
       // ── Waitlist form ──
-      document.getElementById('waitlistForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('emailInput').value;
-        const name = email.split('@')[0].toUpperCase();
-        this.innerHTML = `
-          <div style="text-align:center;padding:1rem 0;">
-            <div style="font-size:2rem;margin-bottom:0.8rem">✅</div>
-            <p style="font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:0.4rem">You're on the list, ${name}!</p>
-            <p style="font-size:0.9rem;color:var(--text-2)">We'll send your invite to <strong>${email}</strong> soon.</p>
-          </div>`;
+      const waitlistForm = document.getElementById('waitlistForm');
+      if (waitlistForm) {
+        waitlistForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const email = document.getElementById('emailInput').value;
+          const name = email.split('@')[0].toUpperCase();
+          this.innerHTML = `
+            <div style="text-align:center;padding:1rem 0;">
+              <div style="font-size:2rem;margin-bottom:0.8rem">✅</div>
+              <p style="font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:0.4rem">You're on the list, ${name}!</p>
+              <p style="font-size:0.9rem;color:var(--text-2)">We'll send your invite to <strong>${email}</strong> soon.</p>
+            </div>`;
+        });
+      }
+
       // ── Spline 3D Brain continuous rotation & transparent theme setup ──
       const splineViewer = document.querySelector('#hero-orb-container spline-viewer');
       if (splineViewer) {
@@ -1435,25 +1440,29 @@
         splineViewer.addEventListener('load', startRotation);
         setTimeout(startRotation, 2000);
       }
-    });
 
-    // ── Theme toggle ──
-    const html = document.documentElement;
-    const toggleBtn = document.getElementById('themeToggle');
-    const thumb = document.getElementById('toggleThumb');
+      // ── Theme toggle ──
+      const html = document.documentElement;
+      const toggleBtn = document.getElementById('themeToggle');
+      const thumb = document.getElementById('toggleThumb');
 
-    const saved = localStorage.getItem('medhas-theme');
-    if (saved) {
-      html.setAttribute('data-theme', saved);
-      thumb.textContent = saved === 'light' ? '☀️' : '🌙';
-    }
+      const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme');
+      if (saved) {
+        html.setAttribute('data-theme', saved);
+        if (thumb) thumb.textContent = saved === 'light' ? '☀️' : '🌙';
+      }
 
-    toggleBtn.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      thumb.textContent = next === 'light' ? '☀️' : '🌙';
-      localStorage.setItem('medhas-theme', next);
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const current = html.getAttribute('data-theme') || 'dark';
+          const next = current === 'dark' ? 'light' : 'dark';
+          html.setAttribute('data-theme', next);
+          if (thumb) thumb.textContent = next === 'light' ? '☀️' : '🌙';
+          localStorage.setItem('medhas-theme', next);
+          localStorage.setItem('medhas_theme', next);
+        });
+      }
     });
   </script>
 </body>
