@@ -8,7 +8,7 @@ function createOrbScene(container, { interactive = true } = {}) {
   const camera   = new THREE.PerspectiveCamera(55, width / height, 0.1, 500);
   camera.position.copy(HOME_POSITION);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping         = THREE.ACESFilmicToneMapping;

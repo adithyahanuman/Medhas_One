@@ -375,22 +375,26 @@
        LIGHT THEME OVERRIDES (data-theme="light")
     ═══════════════════════════════════════ */
     html[data-theme="light"] body {
-      background: #f1f5f9;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
       color: #0f172a;
     }
     html[data-theme="light"] #state-overlay {
-      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(255,255,255,0) 40%, rgba(241,245,249,0.85) 100%);
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(99,102,241,0.06) 0%, rgba(241,245,249,0.9) 100%);
     }
     html[data-theme="light"] #scanlines {
-      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(108,99,255,0.02) 3px, rgba(108,99,255,0.02) 4px);
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(99,102,241,0.015) 3px, rgba(99,102,241,0.015) 4px);
     }
     html[data-theme="light"] #grid-overlay {
-      background-image: linear-gradient(rgba(108,99,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(108,99,255,0.08) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
     }
     html[data-theme="light"] #topbar {
-      background: rgba(255, 255, 255, 0.85);
-      border-color: rgba(108, 99, 255, 0.25);
-      box-shadow: 0 4px 30px rgba(0,0,0,0.08);
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      box-shadow: 0 4px 25px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(20px);
+    }
+    html[data-theme="light"] .tb-logo {
+      color: #4f46e5;
     }
     html[data-theme="light"] .tb-clock,
     html[data-theme="light"] .tb-state {
@@ -400,72 +404,77 @@
       color: #64748b;
     }
     html[data-theme="light"] .tb-nav-btn:hover {
-      color: #1e293b;
-      background: rgba(108,99,255,0.1);
+      color: #0f172a;
+      background: rgba(99,102,241,0.1);
     }
     html[data-theme="light"] .tb-nav-btn.active {
-      color: #6d28d9;
-      background: rgba(108,99,255,0.15);
+      color: #4f46e5;
+      background: rgba(99,102,241,0.15);
+      border-color: rgba(99,102,241,0.3);
     }
     html[data-theme="light"] .tb-icon-btn {
-      background: rgba(108,99,255,0.1);
-      border-color: rgba(108,99,255,0.25);
-      color: #4c1d95;
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(99,102,241,0.25);
+      color: #4f46e5;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     html[data-theme="light"] .tb-exit {
       color: #475569;
-      border-color: rgba(108,99,255,0.2);
+      border-color: rgba(99,102,241,0.2);
+      background: rgba(255, 255, 255, 0.8);
     }
     html[data-theme="light"] #left-panel .lp-inner,
     html[data-theme="light"] #right-panel .rp-inner {
-      background: rgba(255, 255, 255, 0.92);
-      border-color: rgba(108, 99, 255, 0.2);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(99, 102, 241, 0.2);
+      box-shadow: 0 15px 45px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(24px);
     }
     html[data-theme="light"] .lp-tab,
     html[data-theme="light"] .rp-tab {
       background: rgba(255, 255, 255, 0.95);
-      border-color: rgba(108, 99, 255, 0.35);
-      color: #6d28d9;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+      border-color: rgba(99, 102, 241, 0.3);
+      color: #4f46e5;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.06);
     }
     html[data-theme="light"] .sess-title {
-      color: #1e293b;
+      color: #0f172a;
     }
     html[data-theme="light"] .sess-time {
       color: #64748b;
     }
     html[data-theme="light"] .sess-card:hover {
-      background: rgba(108,99,255,0.08);
+      background: rgba(99,102,241,0.08);
     }
     html[data-theme="light"] .sess-card.active {
-      background: rgba(108,99,255,0.16);
+      background: rgba(99,102,241,0.15);
+      border-color: rgba(99,102,241,0.3);
     }
     html[data-theme="light"] .rp-heading {
-      color: #6d28d9;
+      color: #4f46e5;
     }
     html[data-theme="light"] .rp-close-btn {
-      background: rgba(108,99,255,0.1);
+      background: rgba(99,102,241,0.1);
       color: #475569;
     }
     html[data-theme="light"] .ch-msg.user {
-      background: rgba(108, 99, 255, 0.12);
-      border-color: rgba(108, 99, 255, 0.3);
-      color: #3b0764;
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.25);
+      color: #1e1b4b;
     }
     html[data-theme="light"] .ch-msg.ai {
-      background: rgba(14, 165, 233, 0.1);
-      border-color: rgba(14, 165, 233, 0.3);
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.25);
       color: #0369a1;
     }
-    html[data-theme="light"] .ch-msg.user .ch-sender { color: #6d28d9; }
+    html[data-theme="light"] .ch-msg.user .ch-sender { color: #4f46e5; }
     html[data-theme="light"] .ch-msg.ai .ch-sender { color: #0284c7; }
     html[data-theme="light"] .ch-time { color: #64748b; }
     html[data-theme="light"] .ch-empty { color: #64748b; }
     html[data-theme="light"] #ai-bubble {
       background: rgba(255, 255, 255, 0.94);
-      border-color: rgba(14, 165, 233, 0.3);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      border-color: rgba(2, 132, 199, 0.3);
+      box-shadow: 0 10px 40px rgba(15, 23, 42, 0.1);
     }
     html[data-theme="light"] #bubble-text {
       color: #0f172a;
@@ -474,9 +483,9 @@
       color: #0284c7;
     }
     html[data-theme="light"] .ai-search-container {
-      background: rgba(255, 255, 255, 0.88);
-      border-color: rgba(108, 99, 255, 0.25);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(99, 102, 241, 0.25);
+      box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
     }
     html[data-theme="light"] #chat-input {
       color: #0f172a;
@@ -485,8 +494,9 @@
       color: #94a3b8;
     }
     html[data-theme="light"] .float-card {
-      background: rgba(255, 255, 255, 0.8);
-      border-color: rgba(108, 99, 255, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(99, 102, 241, 0.22);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
     }
     html[data-theme="light"] .fc-val {
       color: #0284c7;
@@ -496,19 +506,26 @@
       color: #64748b;
     }
     html[data-theme="light"] .sug-chip {
-      background: rgba(255, 255, 255, 0.85);
-      border-color: rgba(108, 99, 255, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(99, 102, 241, 0.25);
       color: #334155;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
     html[data-theme="light"] .sug-chip:hover {
-      background: rgba(108, 99, 255, 0.15);
-      color: #6d28d9;
+      background: rgba(99, 102, 241, 0.15);
+      color: #4f46e5;
     }
     html[data-theme="light"] #toast {
-      background: rgba(255, 255, 255, 0.95);
-      border-color: rgba(108, 99, 255, 0.3);
+      background: rgba(255, 255, 255, 0.96);
+      border-color: rgba(99, 102, 241, 0.3);
       color: #0f172a;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 25px rgba(15, 23, 42, 0.12);
+    }
+    html[data-theme="light"] .hud-line {
+      stroke: rgba(99, 102, 241, 0.35);
+    }
+    html[data-theme="light"] .hud-dot {
+      fill: #4f46e5;
     }
 
 
@@ -1137,18 +1154,22 @@
   ];
   let t=0;
   function draw(){
-    ctx.fillStyle='#050810'; ctx.fillRect(0,0,W,H);
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    ctx.fillStyle = isLight ? '#f1f5f9' : '#050810';
+    ctx.fillRect(0,0,W,H);
     // Nebulas
     nebulas.forEach(n=>{
       const g=ctx.createRadialGradient(n.x*W,n.y*H,0,n.x*W,n.y*H,n.r*Math.min(W,H));
-      g.addColorStop(0,n.c); g.addColorStop(1,'transparent');
+      const color = isLight ? 'rgba(99,102,241,0.07)' : n.c;
+      g.addColorStop(0,color); g.addColorStop(1,'transparent');
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     });
-    // Stars
+    // Stars / Ambient Dust
     stars.forEach(s=>{
       s.a = Math.max(0.05, Math.min(0.9, s.a+s.da));
       ctx.beginPath(); ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(180,200,255,${s.a*0.7})`; ctx.fill();
+      ctx.fillStyle = isLight ? `rgba(99,102,241,${s.a*0.35})` : `rgba(180,200,255,${s.a*0.7})`;
+      ctx.fill();
     });
     // Occasional shooting star
     if(Math.random()<0.003){
@@ -1156,7 +1177,8 @@
       const len=80+Math.random()*120;
       ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+len,sy+len*0.3);
       const g=ctx.createLinearGradient(sx,sy,sx+len,sy+len*0.3);
-      g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.5,'rgba(180,200,255,0.7)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      const strokeColor = isLight ? 'rgba(99,102,241,0.5)' : 'rgba(180,200,255,0.7)';
+      g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.5,strokeColor); g.addColorStop(1,'rgba(255,255,255,0)');
       ctx.strokeStyle=g; ctx.lineWidth=1; ctx.stroke();
     }
     t++; requestAnimationFrame(draw);
