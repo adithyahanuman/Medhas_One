@@ -261,10 +261,10 @@
     #hero-orb-container canvas {
       background: transparent !important;
     }
-    [data-theme="light"] #hero-orb-container { opacity: 0.95; }
+    [data-theme="light"] #hero-orb-container { opacity: 0.85; }
     [data-theme="light"] #hero-orb-container spline-viewer {
-      mix-blend-mode: normal !important;
-      filter: none !important;
+      mix-blend-mode: multiply !important;
+      filter: invert(1) hue-rotate(180deg) !important;
     }
     #hero-orb-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
@@ -275,6 +275,9 @@
     }
     [data-theme="light"] .hero-vignette {
       background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, #f8fafc 100%) !important;
+    }
+    [data-theme="light"] .hero-scanlines {
+      display: none !important;
     }
 
     /* Scan lines */
