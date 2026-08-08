@@ -406,155 +406,167 @@
     /* ═══════════════════════════════════════
        LIGHT THEME OVERRIDES — PURE SNOW WHITE & ELECTRIC INDIGO
     ═══════════════════════════════════════ */
+    html[data-theme="light"], body[data-theme="light"], [data-theme="light"] {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
     html[data-theme="light"] body {
-      background: #f8fafc;
-      color: #0f172a;
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
     }
     html[data-theme="light"] #state-overlay {
-      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(99,102,241,0.04) 0%, rgba(248,250,252,0.95) 100%);
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(99,102,241,0.04) 0%, rgba(248,250,252,0.95) 100%) !important;
     }
     html[data-theme="light"] #scanlines {
-      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(99,102,241,0.015) 3px, rgba(99,102,241,0.015) 4px);
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(99,102,241,0.015) 3px, rgba(99,102,241,0.015) 4px) !important;
     }
     html[data-theme="light"] #grid-overlay {
-      background-image: linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px) !important;
     }
     html[data-theme="light"] #topbar {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
     }
     html[data-theme="light"] .tb-logo {
-      background: linear-gradient(90deg, #7fe8ff 0%, #6c63ff 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      filter: drop-shadow(0 0 10px rgba(127,232,255,0.4));
+      background: linear-gradient(90deg, #4f46e5 0%, #0284c7 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
     }
     html[data-theme="light"] .tb-clock,
     html[data-theme="light"] .tb-state {
-      color: #334155;
+      color: #334155 !important;
     }
     html[data-theme="light"] .tb-nav-btn {
-      color: #64748b;
+      color: #475569 !important;
     }
     html[data-theme="light"] .tb-nav-btn:hover {
-      color: #0f172a;
-      background: rgba(99,102,241,0.08);
+      color: #0f172a !important;
+      background: rgba(99,102,241,0.08) !important;
     }
     html[data-theme="light"] .tb-nav-btn.active {
-      color: #4f46e5;
-      background: rgba(79,70,229,0.12);
-      border-color: rgba(79,70,229,0.25);
+      color: #4f46e5 !important;
+      background: rgba(79,70,229,0.12) !important;
+      border-color: rgba(79,70,229,0.25) !important;
     }
-    html[data-theme="light"] .tb-icon-btn {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      color: #4f46e5;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
+    html[data-theme="light"] .tb-icon-btn,
     html[data-theme="light"] .tb-exit {
-      color: #475569;
-      border-color: #cbd5e1;
-      background: #ffffff;
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #4f46e5 !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
     }
     html[data-theme="light"] #left-panel .lp-inner,
     html[data-theme="light"] #right-panel .rp-inner {
-      background: rgba(255, 255, 255, 0.96);
-      border-color: #e2e8f0;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-      backdrop-filter: blur(24px);
+      background: rgba(255, 255, 255, 0.96) !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08) !important;
     }
     html[data-theme="light"] .lp-tab,
     html[data-theme="light"] .rp-tab {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      color: #4f46e5;
-      box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #4f46e5 !important;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.05) !important;
     }
-    html[data-theme="light"] .sess-title {
-      color: #0f172a;
-    }
-    html[data-theme="light"] .sess-time {
-      color: #64748b;
+    html[data-theme="light"] .sess-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
     }
     html[data-theme="light"] .sess-card:hover {
-      background: rgba(79,70,229,0.06);
+      background: rgba(79,70,229,0.06) !important;
     }
     html[data-theme="light"] .sess-card.active {
-      background: rgba(79,70,229,0.12);
-      border-color: rgba(79,70,229,0.25);
+      background: rgba(79,70,229,0.12) !important;
+      border-color: rgba(79,70,229,0.25) !important;
+    }
+    html[data-theme="light"] .sess-title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .sess-time {
+      color: #64748b !important;
     }
     html[data-theme="light"] .rp-heading {
-      color: #4f46e5;
+      color: #4f46e5 !important;
     }
     html[data-theme="light"] .rp-close-btn {
-      background: rgba(79,70,229,0.08);
-      color: #475569;
+      background: rgba(79,70,229,0.08) !important;
+      color: #475569 !important;
     }
     html[data-theme="light"] .ch-msg.user {
-      background: rgba(79, 70, 229, 0.08);
-      border-color: rgba(79, 70, 229, 0.2);
-      color: #1e1b4b;
+      background: rgba(79, 70, 229, 0.08) !important;
+      border-color: rgba(79, 70, 229, 0.2) !important;
+      color: #1e1b4b !important;
     }
     html[data-theme="light"] .ch-msg.ai {
-      background: rgba(2, 132, 199, 0.06);
-      border-color: rgba(2, 132, 199, 0.2);
-      color: #0369a1;
+      background: rgba(2, 132, 199, 0.06) !important;
+      border-color: rgba(2, 132, 199, 0.2) !important;
+      color: #0369a1 !important;
     }
-    html[data-theme="light"] .ch-msg.user .ch-sender { color: #4f46e5; }
-    html[data-theme="light"] .ch-msg.ai .ch-sender { color: #0284c7; }
-    html[data-theme="light"] .ch-time { color: #64748b; }
-    html[data-theme="light"] .ch-empty { color: #64748b; }
+    html[data-theme="light"] .ch-msg.user .ch-sender { color: #4f46e5 !important; }
+    html[data-theme="light"] .ch-msg.ai .ch-sender { color: #0284c7 !important; }
+    html[data-theme="light"] .ch-time { color: #64748b !important; }
+    html[data-theme="light"] .ch-empty { color: #64748b !important; }
     html[data-theme="light"] #ai-bubble {
-      background: rgba(255, 255, 255, 0.96);
-      border-color: #e2e8f0;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, 0.96) !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
     }
     html[data-theme="light"] #bubble-text {
-      color: #0f172a;
+      color: #0f172a !important;
     }
     html[data-theme="light"] .bubble-name {
-      color: #4f46e5;
+      color: #4f46e5 !important;
     }
     html[data-theme="light"] .ai-search-container {
-      background: rgba(255, 255, 255, 0.96);
-      border-color: #e2e8f0;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, 0.96) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
     }
     html[data-theme="light"] #chat-input {
-      color: #0f172a;
+      color: #0f172a !important;
     }
     html[data-theme="light"] #chat-input::placeholder {
-      color: #94a3b8;
+      color: #94a3b8 !important;
     }
     html[data-theme="light"] .float-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-color: #e2e8f0;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05) !important;
     }
     html[data-theme="light"] .fc-val {
-      color: #4f46e5;
+      color: #4f46e5 !important;
     }
     html[data-theme="light"] .fc-label,
     html[data-theme="light"] .fc-sub {
-      color: #64748b;
+      color: #64748b !important;
     }
     html[data-theme="light"] .sug-chip {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #334155;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #334155 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
     }
     html[data-theme="light"] .sug-chip:hover {
-      background: rgba(79, 70, 229, 0.1);
-      color: #4f46e5;
-      border-color: rgba(79, 70, 229, 0.3);
+      background: rgba(79, 70, 229, 0.1) !important;
+      color: #4f46e5 !important;
+      border-color: rgba(79, 70, 229, 0.3) !important;
+    }
+    html[data-theme="light"] .qa-btn {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .qa-btn:hover {
+      background: rgba(79, 70, 229, 0.08) !important;
+      color: #4f46e5 !important;
     }
     html[data-theme="light"] #toast {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #0f172a;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
     }
     html[data-theme="light"] .hud-line {
       stroke: rgba(79, 70, 229, 0.3);
@@ -1416,6 +1428,30 @@ function escapeHtml(str) {
 // ════════════════════════════════════════════
 // CHAT PRIMITIVES
 // ════════════════════════════════════════════
+window.saveChatToLocal = function(role, text) {
+  if (role !== 'user') return;
+  var activeId = window._activeSessionId || ('local_sess_' + Date.now());
+  window._activeSessionId = activeId;
+
+  var sessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+  var existing = sessions.find(function(s) { return s.id === activeId; });
+  var title = text.slice(0, 35) + (text.length > 35 ? '…' : '');
+  if (existing) {
+    existing.updated_at = new Date().toISOString();
+  } else {
+    sessions.unshift({
+      id: activeId,
+      title: title,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+  localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
+  if (typeof window.renderSessionList === 'function') {
+    window.renderSessionList(sessions, activeId);
+  }
+};
+
 function addToHistory(role, text){
   const hist = document.getElementById('chat-history');
   if (!hist) return;
@@ -1433,6 +1469,8 @@ function addToHistory(role, text){
   `;
   hist.appendChild(el);
   hist.scrollTop = hist.scrollHeight;
+
+  window.saveChatToLocal(role, text);
 
   const rp = document.getElementById('right-panel');
   if (rp && !rp.classList.contains('open')) {
@@ -1870,24 +1908,6 @@ window.exitApp = function(e) {
   setTimeout(function() { window.location.href = 'signin.html'; }, 300);
 };
 
-// ── Session render ────────────────────────────────────────────────────────────
-window.renderSessionList = function(sessions, activeId) {
-  var list = document.getElementById('session-list');
-  if (!list) return;
-  if (!sessions || !sessions.length) {
-    list.innerHTML = '<div class="sess-empty">No previous conversations</div>';
-    return;
-  }
-  list.innerHTML = sessions.map(function(s) {
-    return '<div class="sess-card' + (s.id === activeId ? ' active' : '') + '" onclick="window.onSessionClick && window.onSessionClick(\'' + s.id + '\')">' +
-      '<span class="sess-icon">💬</span>' +
-      '<div class="sess-info"><div class="sess-title">' + (s.title || 'Untitled') + '</div>' +
-      '<div class="sess-time">' + (s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '') + '</div></div>' +
-      '<button class="sess-del" onclick="event.stopPropagation(); window.onSessionDelete && window.onSessionDelete(\'' + s.id + '\')" title="Delete">✕</button>' +
-      '</div>';
-  }).join('');
-};
-
 // ── Wire up keyboard & button event listeners ─────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   // Enter key on textarea
@@ -2024,18 +2044,23 @@ const assistant = new Assistant({
 window._assistant = assistant;
 
 // Session management
-async function loadSessionList() {
+window.loadSessionList = async function() {
+  var activeId = window._activeSessionId;
   try {
     const origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
     const res = await fetch(`${origin}/api/sessions`);
-    if (!res.ok) throw new Error('server unavailable');
-    const { sessions } = await res.json();
-    window.renderSessionList?.(sessions, window._activeSessionId);
-  } catch(e) {
-    const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
-    window.renderSessionList?.(local, window._activeSessionId);
-  }
-}
+    if (res.ok) {
+      const { sessions } = await res.json();
+      if (sessions && sessions.length) {
+        localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
+        window.renderSessionList?.(sessions, activeId);
+        return;
+      }
+    }
+  } catch(e) {}
+  const local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+  window.renderSessionList?.(local, activeId);
+};
 
 window.onSessionClick = async (sessionId) => {
   if (sessionId === window._activeSessionId) return;
