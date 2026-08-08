@@ -1428,12 +1428,7 @@ function escapeHtml(str) {
 }
 
 // ════════════════════════════════════════════
-// FLOATING CARDS — show after 2s
-// ════════════════════════════════════════════
-setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList.add('visible')); }, 2000);
-
-// ════════════════════════════════════════════
-// CHAT PRIMITIVES (Driven by assistant.js module)
+// CHAT PRIMITIVES
 // ════════════════════════════════════════════
 function addToHistory(role, text){
   const hist = document.getElementById('chat-history');
@@ -1453,7 +1448,6 @@ function addToHistory(role, text){
   hist.appendChild(el);
   hist.scrollTop = hist.scrollHeight;
 
-  // Open right panel drawer automatically when a message is added
   const rp = document.getElementById('right-panel');
   if (rp && !rp.classList.contains('open')) {
     rp.classList.add('open');
@@ -1461,9 +1455,8 @@ function addToHistory(role, text){
 }
 
 // ════════════════════════════════════════════
-// UI STATE
+// UI BUBBLE & PANEL CONTROLS
 // ════════════════════════════════════════════
-
 function showBubble(text){
   const bt = document.getElementById('bubble-text');
   if (bt) bt.textContent=text;
@@ -1481,27 +1474,11 @@ function hideBubble(){
 function showThinking(){ document.getElementById('thinking-ind')?.classList.add('visible'); }
 function hideThinking(){ document.getElementById('thinking-ind')?.classList.remove('visible'); }
 
-// ════════════════════════════════════════════
-// PANEL TOGGLE
-// ════════════════════════════════════════════
 function togglePanel(side){
   const panel=document.getElementById(side+'-panel');
   if (panel) panel.classList.toggle('open');
 }
 
-// ════════════════════════════════════════════
-// NAV TABS
-// ════════════════════════════════════════════
-document.querySelectorAll('.tb-nav-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tb-nav-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-  });
-});
-
-// ════════════════════════════════════════════
-// TOAST
-// ════════════════════════════════════════════
 function showToast(msg,ms=2800){
   const t=document.getElementById('toast');
   const tm=document.getElementById('toast-msg');
@@ -1511,56 +1488,24 @@ function showToast(msg,ms=2800){
     setTimeout(()=>t.classList.remove('show'),ms);
   }
 }
-setTimeout(()=>showToast('MEDHAS neural core online — all systems operational'),1000);
-setInterval(()=>{
-  const msgs=['Local inference active — 100% private','Context window: 14K / 128K tokens used','Response latency: 67ms average'];
-  showToast(msgs[Math.floor(Math.random()*msgs.length)]);
-},25000);
 
-// Global event handlers for input area
-window.handleKey = function(e) {
-  if (e && e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (typeof window.sendMessage === 'function') window.sendMessage();
-  }
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  const chatInput = document.getElementById('chat-input');
-  if (chatInput) {
-    chatInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof window.sendMessage === 'function') window.sendMessage();
-      }
-    });
-  }
-});
+// ════════════════════════════════════════════
+// FLOATING CARDS — show after 2s
+// ════════════════════════════════════════════
+setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList.add('visible')); }, 2000);
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
-     PHASE 1 REAL ASSISTANT WIRING
-     Imports assistant.js / tts.js / subtitle.js and overrides the fake
-     simulation functions defined in the classic script above.
-     onclick="sendMessage()" etc. resolve window.sendMessage at call time,
-     so overriding window.xxx here takes effect immediately.
-════════════════════════════════════════════════════════════════════════ -->
 <script type="module">
 import { Assistant }          from './assistant.js';
 import { TTSEngine }           from './tts.js';
 import { SubtitleController }  from './subtitle.js';
 
-// ── Bridge to the inline Three.js orb ────────────────────────────────────────
-// The orb IIFE in the classic script exposes window.setOrbState(state, amp).
-// We wrap it to match the orbScene.js public API: orb.setConversationState().
 const orb = {
   setConversationState(state, amp = 0) {
     window.setOrbState?.(state, amp);
   },
 };
 
-// ── Instantiate modules ───────────────────────────────────────────────────────
 const tts      = new TTSEngine();
 const subtitle = new SubtitleController('#subtitle-words');
 
@@ -1569,13 +1514,11 @@ const assistant = new Assistant({
   tts,
   subtitle,
 
-  // ── State changes drive all UI chrome ──────────────────────────────────────
   onStateChange(state) {
-    window.__currentState = state;   // waveform canvas reads this
+    window.__currentState = state;
     _applyUIState(state);
   },
 
-  // ── Error handling — never leaves the UI stuck ─────────────────────────────
   onError(code, msg) {
     if (code === 'speech-recognition-unsupported') {
       _disableMic(msg);
@@ -1585,13 +1528,11 @@ const assistant = new Assistant({
     _resetMicBtn();
   },
 
-  // ── User speech transcript — add to history ────────────────────────────────
   onUserTranscript(text) {
     addToHistory('user', text);
     _incQueryCount();
   },
 
-  // ── Live speech feedback in the search box ─────────────────────────────────
   onInterimTranscript(text) {
     const inp = document.getElementById('chat-input');
     if (inp) {
@@ -1603,33 +1544,31 @@ const assistant = new Assistant({
     }
   },
 
-  // ── AI reply — display in bubble + history ─────────────────────────────────
   onAIReply(text) {
     addToHistory('ai', text);
-    showBubble(text);            // showBubble() already defined in classic script
+    showBubble(text);
   },
 
-  // ── Session change handler — keeps UI active session & sidebar in sync ──────
   onSessionChange({ session, isNew, messages }) {
     window._activeSessionId = session.id;
     if (typeof _loadSessionList === 'function') _loadSessionList();
 
-    // Render session messages into sidebar history list
     const hist = document.getElementById('chat-history');
     if (hist && messages && Array.isArray(messages)) {
       hist.innerHTML = '';
       for (const msg of messages) {
         const el = document.createElement('div');
-        const ts = new Date(msg.created_at).toTimeString().slice(0, 5);
+        const ts = new Date(msg.created_at || Date.now()).toTimeString().slice(0, 5);
         el.className = 'ch-msg ' + msg.role;
-        el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div>${msg.content}<div class="ch-time">${ts}</div>`;
+        el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
         hist.appendChild(el);
       }
+      hist.scrollTop = hist.scrollHeight;
     }
   },
 });
 
-// (assistant.init moved to module bottom)
+window.assistant = assistant;
 
 // ── UI state driver ───────────────────────────────────────────────────────────
 const STATE_LABELS = { idle: 'Standby', listening: 'Listening…', thinking: 'Thinking…', speaking: 'Speaking' };
@@ -1667,7 +1606,6 @@ function _applyUIState(state) {
 
   // Hide bubble when returning to idle from non-speaking state
   if (state === 'idle') {
-    // Small delay so the subtitle fade-out finishes first
     setTimeout(hideBubble, 600);
   }
 }
@@ -1704,7 +1642,6 @@ function _incQueryCount() {
 }
 
 // ── Session management ────────────────────────────────────────────────────────
-
 async function _loadSessionList() {
   try {
     if (location.hostname.endsWith('github.io')) {
@@ -1727,19 +1664,19 @@ async function _loadSessionList() {
 
 /** Create a fresh conversation */
 window.newChat = async () => {
-  assistant.interrupt();
+  window.assistant?.interrupt();
   hideBubble();
   const hist = document.getElementById('chat-history');
   if (hist) hist.innerHTML = '<div class="ch-empty">New conversation started. Type a message below to begin!</div>';
   document.getElementById('suggestions')?.classList.remove('hidden');
-  await assistant.startNewSession();
+  await window.assistant?.startNewSession();
   showToast('New conversation started', 2000);
 };
 
 /** Click a session card — load that session's history into the right panel drawer */
 window.onSessionClick = async (sessionId) => {
   if (sessionId === window._activeSessionId) return;
-  const result = await assistant.loadSession(sessionId);
+  const result = await window.assistant?.loadSession(sessionId);
   if (!result) { showToast('Could not load session', 3000); return; }
 
   // Render messages in the right panel chat-history container
@@ -1762,7 +1699,6 @@ window.onSessionClick = async (sessionId) => {
   hideBubble();
   showToast(`Loaded: "${result.session.title}"`, 2200);
 
-  // Automatically open the Right Panel Chat Drawer so user sees the messages!
   const rp = document.getElementById('right-panel');
   if (rp) {
     rp.classList.add('open');
@@ -1777,7 +1713,6 @@ window.onSessionDelete = async (sessionId) => {
         ? 'http://localhost:3000' : location.origin;
       await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
     }
-    // Also remove from local storage
     const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]').filter(s => s.id !== sessionId);
     localStorage.setItem('medhas_local_sessions', JSON.stringify(localSessions));
     localStorage.removeItem(`medhas_msgs_${sessionId}`);
@@ -1808,19 +1743,12 @@ window.toggleTheme = () => {
 (function initTheme() {
   const saved = localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
-  window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('theme-toggle-btn');
-    if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
-  });
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
 })();
-</script>
-</body>
-</html>
-
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // OVERRIDE GLOBAL ENTRY POINTS
-// onclick attrs call these by name at event time, so overriding window.xxx works.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Called by onclick="sendMessage()" and Enter key. */
@@ -1831,7 +1759,7 @@ window.sendMessage = () => {
   
   inp.value = '';
   if (inp) {
-    inp.style.height = 'auto'; // Reset height
+    inp.style.height = 'auto';
   }
   
   const sendBtn = document.getElementById('send-btn');
@@ -1841,12 +1769,17 @@ window.sendMessage = () => {
   addToHistory('user', text);
   _incQueryCount();
   document.getElementById('suggestions')?.classList.add('hidden');
-  assistant.submit(text);
+
+  if (window.assistant) {
+    window.assistant.submit(text);
+  } else {
+    console.warn('[SendMessage] Assistant module loading...');
+  }
 };
 
 /** Called by onkeydown="handleKey(event)". */
 window.handleKey = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     window.sendMessage();
   }
@@ -1855,33 +1788,19 @@ window.handleKey = (e) => {
 /** Called by onclick="toggleMic()". */
 window.toggleMic = () => {
   const btn = document.getElementById('mic-btn');
-  if (_micDisabled) return;
+  if (_micDisabled || !window.assistant) return;
 
-  if (assistant.state === 'listening') {
-    assistant.stopListening();
+  if (window.assistant.state === 'listening') {
+    window.assistant.stopListening();
     _resetMicBtn();
-  } else if (assistant.state === 'idle') {
+  } else if (window.assistant.state === 'idle') {
     btn?.classList.add('active');
-    assistant.startListening();
+    window.assistant.startListening();
   } else {
-    // Interrupt thinking/speaking and reset
-    assistant.interrupt();
+    window.assistant.interrupt();
     _resetMicBtn();
   }
 };
-
-// Attach direct DOM event listeners so button clicks always trigger
-document.getElementById('send-btn')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  window.sendMessage();
-});
-
-document.getElementById('mic-btn')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  window.toggleMic();
-});
 
 /** Toggle globe button visually */
 window.toggleGlobe = (btn) => {
@@ -1928,7 +1847,6 @@ window.onInputChange = () => {
   const inp  = document.getElementById('chat-input');
   const val  = inp?.value ?? '';
   
-  // Auto-resize textarea
   if (inp) {
     inp.style.height = 'auto';
     inp.style.height = Math.min(inp.scrollHeight, 200) + 'px';
@@ -1955,7 +1873,7 @@ window.handleFileUpload = (e) => {
     addToHistory('user', `📷 Attached Image: <strong>${file.name}</strong>`);
     _incQueryCount();
     showToast(`Streaming image "${file.name}" to Live Session...`, 3000);
-    assistant.submitImage(base64Str, mimeType);
+    window.assistant?.submitImage(base64Str, mimeType);
   };
   reader.readAsDataURL(file);
 };
@@ -1964,21 +1882,40 @@ window.handleFileUpload = (e) => {
 window.exitApp = (e) => {
   e?.preventDefault();
   showToast('Closing Live Session cleanly...', 1500);
-  assistant.close();
+  window.assistant?.close();
   setTimeout(() => {
     window.location.href = 'signin.html';
   }, 300);
 };
 
-// Safely initialize assistant after all window functions & DOM event listeners are bound
+// Direct listeners setup
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('send-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.sendMessage();
+  });
+
+  document.getElementById('mic-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.toggleMic();
+  });
+
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    const saved = localStorage.getItem('medhas_theme') || 'dark';
+    btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  }
+});
+
+// Safely initialize assistant
 try {
   assistant.init();
 } catch (err) {
   console.warn('[Assistant] Initialisation warning:', err);
 }
 
-// ── Startup toast (override the fake one with a real status check) ─────────────
-const _originalToast = window.showToast;  // keep reference for reuse
 if (!tts.isSupported) {
   showToast('⚠ Text-to-speech is not supported in this browser', 5000);
 }
