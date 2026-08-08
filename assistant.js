@@ -424,14 +424,10 @@ export class Assistant {
   async #fetchDirectGemini(text, signal) {
     let apiKey = localStorage.getItem('medhas_gemini_api_key');
     if (!apiKey) {
-      apiKey = prompt('MEDHAS AI Notice:\n\nTo enable AI responses on GitHub Pages, enter your Gemini API Key:\n(Key is saved securely in your browser)');
-      if (apiKey) {
-        apiKey = apiKey.trim();
-        localStorage.setItem('medhas_gemini_api_key', apiKey);
+      if (typeof window.openKeyModal === 'function') {
+        window.openKeyModal();
       }
-    }
-    if (!apiKey) {
-      throw new Error('Gemini API key required on GitHub Pages. Click ⚙ Key in the top bar to set it.');
+      throw new Error('Gemini API Key required for GitHub Pages. Please enter your API key in the popup modal.');
     }
 
     const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
