@@ -43,6 +43,19 @@
       background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(127,232,255,0.015) 3px, rgba(127,232,255,0.015) 4px);
     }
 
+    /* Spline 3D Particles styling */
+    #spline-particles-container {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.85;
+    }
+    #spline-particles-container spline-viewer {
+      width: 100% !important; height: 100% !important;
+      display: block; background: transparent !important;
+      mix-blend-mode: screen;
+    }
+    [data-theme="light"] #spline-particles-container spline-viewer {
+      mix-blend-mode: multiply; filter: contrast(1.15) brightness(0.9);
+    }
+
     /* Grid overlay */
     #grid-overlay {
       position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.4;
@@ -1793,6 +1806,28 @@ window.clearCurrentChat = async function() {
   if (typeof _loadSessionList === 'function') _loadSessionList();
   showToast('Chat history deleted');
 };
+
+// ── Dashboard Spline Particles continuous rotation & transparent theme setup ──
+const dashSplineViewer = document.querySelector('#spline-particles-container spline-viewer');
+if (dashSplineViewer) {
+  const startDashRotate = () => {
+    try {
+      const spline = dashSplineViewer.spline;
+      if (spline && spline._scene) {
+        spline._scene.background = null;
+        let angle = 0;
+        const rotateLoop = () => {
+          angle += 0.004;
+          if (spline._scene) spline._scene.rotation.y = angle;
+          requestAnimationFrame(rotateLoop);
+        };
+        rotateLoop();
+      }
+    } catch(e) {}
+  };
+  dashSplineViewer.addEventListener('load', startDashRotate);
+  setTimeout(startDashRotate, 2000);
+}
 
 // ── Mic helpers ───────────────────────────────────────────────────────────────
 function _resetMicBtn() {

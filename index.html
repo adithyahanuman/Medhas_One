@@ -247,12 +247,20 @@
         radial-gradient(ellipse 40% 60% at 60% 10%, rgba(2,132,199,0.06) 0%, transparent 60%);
     }
 
-    /* 3D orb canvas */
+    /* 3D orb canvas & Spline 3D Brain Viewer */
     #hero-orb-container {
       position: absolute; inset: 0; z-index: 1;
       background: transparent; pointer-events: none;
     }
+    #hero-orb-container spline-viewer {
+      width: 100% !important; height: 100% !important;
+      display: block; background: transparent !important;
+      mix-blend-mode: screen; pointer-events: auto;
+    }
     [data-theme="light"] #hero-orb-container { opacity: 0.95; }
+    [data-theme="light"] #hero-orb-container spline-viewer {
+      mix-blend-mode: multiply; filter: contrast(1.15) brightness(0.9);
+    }
     #hero-orb-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
     /* Vignette */
@@ -1403,7 +1411,27 @@
             <p style="font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:0.4rem">You're on the list, ${name}!</p>
             <p style="font-size:0.9rem;color:var(--text-2)">We'll send your invite to <strong>${email}</strong> soon.</p>
           </div>`;
-      });
+      // ── Spline 3D Brain continuous rotation & transparent theme setup ──
+      const splineViewer = document.querySelector('#hero-orb-container spline-viewer');
+      if (splineViewer) {
+        const startRotation = () => {
+          try {
+            const spline = splineViewer.spline;
+            if (spline && spline._scene) {
+              spline._scene.background = null;
+              let angle = 0;
+              const rotateLoop = () => {
+                angle += 0.005;
+                if (spline._scene) spline._scene.rotation.y = angle;
+                requestAnimationFrame(rotateLoop);
+              };
+              rotateLoop();
+            }
+          } catch(err) { console.log('Spline auto-rotate init:', err); }
+        };
+        splineViewer.addEventListener('load', startRotation);
+        setTimeout(startRotation, 2000);
+      }
     });
 
     // ── Theme toggle ──
