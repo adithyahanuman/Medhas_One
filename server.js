@@ -79,7 +79,7 @@ wss.on('connection', (clientWs) => {
       // Send initial BidiGenerateContent setup — AUDIO modality required for gemini-3.1-flash-live-preview
       const setupMsg = {
         setup: {
-          model: 'models/gemini-2.0-flash-exp',
+          model: 'models/gemini-2.0-flash-realtime-exp',
           generationConfig: {
             responseModalities: ['AUDIO'],
             speechConfig: {
