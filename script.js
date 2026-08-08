@@ -122,102 +122,79 @@ function createOrbScene(container, { interactive = true } = {}) {
   }
 
   // ══════════════════════════════════════════════
-  // LAYER 1 — OUTER SHELL: dense wireframe grid
+  // 3D CYBERNETIC HEAD CREATOR (Lee Perry-Smith Head scan, body removed)
   // ══════════════════════════════════════════════
-  const outerShell = new THREE.Group();
-  const R1 = 2.0;
+  const headGroup = new THREE.Group();
+  orbGroup.add(headGroup);
 
-  for (let i = -15; i <= 15; i++) {
-    const lat     = (i / 15) * (Math.PI / 2) * 0.95;
-    const opacity = i % 3 === 0 ? 0.28 : 0.07;
-    const color   = i % 3 === 0 ? C_MID : C_FAINT;
-    outerShell.add(new THREE.Line(latRing(R1, lat), lineMat(color, opacity)));
+  function attachHeadGeo(headGeo) {
+    headGeo.center();
+    headGeo.computeVertexNormals();
+
+    const wireGeo = new THREE.WireframeGeometry(headGeo);
+    const headWire = new THREE.LineSegments(wireGeo, lineMat(C_MID, 0.7));
+    headWire.name = 'headWire';
+
+    const coreMat = new THREE.MeshBasicMaterial({ color: C_DIM, transparent: true, opacity: 0.1, depthWrite: false });
+    const headCore = new THREE.Mesh(headGeo, coreMat);
+    headCore.name = 'headCore';
+
+    headGroup.add(headWire);
+    headGroup.add(headCore);
   }
 
-  for (let i = 0; i < 24; i++) {
-    const lon     = (i / 24) * Math.PI * 2;
-    const isMajor = i % 6 === 0;
-    outerShell.add(new THREE.Line(
-      meridian(R1, lon),
-      lineMat(isMajor ? C_MID : C_FAINT, isMajor ? 0.32 : 0.05),
-    ));
-  }
-
-  // 4 bright cross meridians — slimmed
-  const CROSS_LINES  = 5;
-  const CROSS_SPREAD = 0.06;
-  for (let i = 0; i < 4; i++) {
-    const lon = (i / 4) * Math.PI * 2;
-    for (let j = 0; j < CROSS_LINES; j++) {
-      const tt      = (j / (CROSS_LINES - 1)) * 2 - 1;
-      const offset  = (tt * CROSS_SPREAD) / 2;
-      const falloff = 1 - Math.abs(tt) * 0.7;
-      const opacity = 0.5 * falloff;
-      const color   = Math.abs(tt) < 0.3 ? C_BRIGHT : C_MID;
-      outerShell.add(new THREE.Line(meridian(R1, lon + offset, 200), lineMat(color, opacity)));
+  // Fallback: Procedural Low-Poly Cyber Head
+  function createProcHeadGeo() {
+    const geo = new THREE.SphereGeometry(1.3, 20, 16);
+    const pos = geo.attributes.position;
+    for(let i=0; i<pos.count; i++) {
+      let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      if (y < -0.3) { x *= 0.65; z *= 0.6; }
+      else if (y < 0.2) { x *= 0.85; z *= 0.9; }
+      if (z > 0.3) { z += Math.max(0, (y + 0.5) * 0.25); }
+      pos.setXYZ(i, x, y, z);
     }
+    geo.computeVertexNormals();
+    return geo;
   }
 
-  // Bright equator band — slimmed
-  const EQ_LINES  = 5;
-  const EQ_SPREAD = 0.08;
-  for (let j = 0; j < EQ_LINES; j++) {
-    const tt      = (j / (EQ_LINES - 1)) * 2 - 1;
-    const offset  = (tt * EQ_SPREAD) / 2;
-    const falloff = 1 - Math.abs(tt) * 0.65;
-    const opacity = 0.45 * falloff;
-    const color   = Math.abs(tt) < 0.3 ? C_BRIGHT : C_MID;
-    outerShell.add(new THREE.Line(latRing(R1, offset, 200), lineMat(color, opacity)));
-  }
+  attachHeadGeo(createProcHeadGeo());
 
-  orbGroup.add(outerShell);
-
-  // ══════════════════════════════════════════════
-  // LAYER 2 — GRID PANELS on sphere surface
-  // ══════════════════════════════════════════════
-  const panelGroup = new THREE.Group();
-
-  function createSpherePanel(latCenter, lonCenter, latSpan, lonSpan, radius, divisions = 4) {
-    const group = new THREE.Group();
-    const mat   = lineMat(C_DIM, 0.25);
-    // horizontal lines
-    for (let i = 0; i <= divisions; i++) {
-      const lat = latCenter - latSpan / 2 + (i / divisions) * latSpan;
-      const pts = [];
-      for (let j = 0; j <= divisions * 4; j++) {
-        const lon = lonCenter - lonSpan / 2 + (j / (divisions * 4)) * lonSpan;
-        pts.push(new THREE.Vector3(
-          radius * Math.cos(lat) * Math.cos(lon),
-          radius * Math.sin(lat),
-          radius * Math.cos(lat) * Math.sin(lon),
-        ));
+  // Asynchronously load detailed Lee Perry-Smith 3D Head Scan GLTF
+  if (typeof THREE.GLTFLoader !== 'undefined') {
+    const loader = new THREE.GLTFLoader();
+    loader.load('head.glb', (gltf) => {
+      let loadedGeo = null;
+      gltf.scene.traverse((child) => {
+        if (child.isMesh && child.geometry && !loadedGeo) {
+          loadedGeo = child.geometry.clone();
+        }
+      });
+      if (loadedGeo) {
+        while(headGroup.children.length > 0) headGroup.remove(headGroup.children[0]);
+        loadedGeo.computeBoundingBox();
+        const bbox = loadedGeo.boundingBox;
+        const sizeY = bbox.max.y - bbox.min.y || 1;
+        const scaleFactor = 2.5 / sizeY;
+        loadedGeo.scale(scaleFactor, scaleFactor, scaleFactor);
+        attachHeadGeo(loadedGeo);
       }
-      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
-    }
-    // vertical lines
-    for (let j = 0; j <= divisions; j++) {
-      const lon = lonCenter - lonSpan / 2 + (j / divisions) * lonSpan;
-      const pts = [];
-      for (let i = 0; i <= divisions * 4; i++) {
-        const lat = latCenter - latSpan / 2 + (i / (divisions * 4)) * latSpan;
-        pts.push(new THREE.Vector3(
-          radius * Math.cos(lat) * Math.cos(lon),
-          radius * Math.sin(lat),
-          radius * Math.cos(lat) * Math.sin(lon),
-        ));
-      }
-      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
-    }
-    return group;
+    }, undefined, (err) => {
+      console.warn('[3D Head] Using procedural head mesh:', err.message);
+    });
   }
 
-  for (let i = 0; i < 30; i++) {
-    const lat  = (Math.random() - 0.5) * Math.PI * 0.8;
-    const lon  = Math.random() * Math.PI * 2;
-    const size = 0.15 + Math.random() * 0.25;
-    panelGroup.add(createSpherePanel(lat, lon, size, size, R1 + 0.01, 3 + Math.floor(Math.random() * 3)));
-  }
-  orbGroup.add(panelGroup);
+  // Orbiting Cyber HUD Halos & Data Nodes around Head
+  const haloGroup = new THREE.Group();
+  haloGroup.add(new THREE.Line(latRing(1.65, 0.35, 80), lineMat(C_BRIGHT, 0.4)));
+  haloGroup.add(new THREE.Line(latRing(1.8, 0, 90), lineMat(C_MID, 0.3)));
+  haloGroup.add(new THREE.Line(latRing(1.35, -0.55, 70), lineMat(C_BRIGHT, 0.35)));
+  orbGroup.add(haloGroup);
+
+  // Scan rings
+  const scanRing1 = new THREE.Line(latRing(2.0, 0, 80), lineMat(C_BRIGHT, 0.2));
+  const scanRing2 = new THREE.Line(latRing(1.2, 0, 80), lineMat(C_MID, 0.15));
+  orbGroup.add(scanRing1, scanRing2);
 
   // ══════════════════════════════════════════════
   // LAYER 3 — SECONDARY SHELL: partial arcs
