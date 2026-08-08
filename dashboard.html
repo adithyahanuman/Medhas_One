@@ -1388,31 +1388,44 @@ function escapeHtml(str) {
 // CHAT PRIMITIVES
 // ════════════════════════════════════════════
 window.saveChatToLocal = function(role, text) {
-  if (role !== 'user') return;
   var activeId = window._activeSessionId || ('local_sess_' + Date.now());
   window._activeSessionId = activeId;
+  localStorage.setItem('medhas_active_session_id', activeId);
 
-  var sessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
-  var existing = sessions.find(function(s) { return s.id === activeId; });
+  // 1. Save message to message history array for this session
+  var msgsKey = 'medhas_msgs_' + activeId;
+  var msgs = JSON.parse(localStorage.getItem(msgsKey) || '[]');
   var cleanText = String(text || '').replace(/<[^>]*>/g, '').trim();
-  var title = cleanText.slice(0, 35) + (cleanText.length > 35 ? '…' : '');
-  
-  if (existing) {
-    existing.updated_at = new Date().toISOString();
-    if (!existing.title || existing.title === 'Untitled Chat' || existing.title === 'New Chat') {
-      existing.title = title || 'Chat';
+  msgs.push({
+    role: role === 'user' ? 'user' : 'model',
+    content: cleanText,
+    created_at: new Date().toISOString()
+  });
+  localStorage.setItem(msgsKey, JSON.stringify(msgs));
+
+  // 2. Save/Update session card in session list
+  if (role === 'user') {
+    var sessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    var existing = sessions.find(function(s) { return s.id === activeId; });
+    var title = cleanText.slice(0, 35) + (cleanText.length > 35 ? '…' : '');
+    
+    if (existing) {
+      existing.updated_at = new Date().toISOString();
+      if (!existing.title || existing.title === 'Untitled Chat' || existing.title === 'New Chat') {
+        existing.title = title || 'Chat';
+      }
+    } else {
+      sessions.unshift({
+        id: activeId,
+        title: title || 'New Conversation',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
     }
-  } else {
-    sessions.unshift({
-      id: activeId,
-      title: title || 'New Conversation',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-  }
-  localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
-  if (typeof window.renderSessionList === 'function') {
-    window.renderSessionList(sessions, activeId);
+    localStorage.setItem('medhas_local_sessions', JSON.stringify(sessions));
+    if (typeof window.renderSessionList === 'function') {
+      window.renderSessionList(sessions, activeId);
+    }
   }
 };
 
@@ -1704,6 +1717,9 @@ window.addToHistory = function(role, text) {
     '<div class="ch-time">' + now + '</div>';
   hist.appendChild(el);
   hist.scrollTop = hist.scrollHeight;
+
+  window.saveChatToLocal(role, text);
+
   var rp = document.getElementById('right-panel');
   if (rp && !rp.classList.contains('open')) rp.classList.add('open');
 };
@@ -1807,8 +1823,8 @@ window._deliverReply = function(reply, userText) {
     var clean = reply.replace(/[*#`_\[\]]/g, '');
     window.speechSynthesis.cancel();
     var utt = new SpeechSynthesisUtterance(clean);
-    utt.rate = 1.35; // Fast, crisp female speech speed
-    utt.pitch = 1.15; // Bright female tone
+    utt.rate = 1.15; // Natural, relaxed female reading speed
+    utt.pitch = 1.12; // Bright female tone
     
     var voices = window.speechSynthesis.getVoices();
     if (!voices || !voices.length) {

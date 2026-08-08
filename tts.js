@@ -126,8 +126,8 @@ export class TTSEngine {
   #speakOne(text, { onWord, onAmplitude, onEnd, onError }, onFinished) {
     const utter = new SpeechSynthesisUtterance(text);
 
-    utter.rate   = 1.35; // Fast, crisp female reading speed
-    utter.pitch  = 1.15; // Bright female pitch
+    utter.rate   = 1.15; // Natural, relaxed female reading speed
+    utter.pitch  = 1.12; // Bright female pitch
     utter.volume = 1.0;
 
     const voice = this.#pickVoice();
