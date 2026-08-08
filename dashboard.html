@@ -1229,8 +1229,20 @@
   const chromaPass=new THREE.ShaderPass(chromaShader);
   composer.addPass(chromaPass);
 
-  const C_BRIGHT=0x7fe8ff,C_MID=0x4db8ff,C_DIM=0x2a6090,C_FAINT=0x142840,C_HOT=0xb8f0ff;
-  function lineMat(color,opacity=1){return new THREE.LineBasicMaterial({color,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false});}
+  const C_BRIGHT=0x00f0ff, C_MID=0x38bdf8, C_DIM=0x0284c7, C_FAINT=0x1d4ed8, C_HOT=0x60a5fa;
+  const allLineMaterials = [];
+  function lineMat(color, opacity=1){
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const mat = new THREE.LineBasicMaterial({
+      color: isLight ? (color === C_FAINT ? 0x0284c7 : 0x1d4ed8) : color,
+      transparent: true,
+      opacity: isLight ? Math.min(1.0, opacity * 2.5) : opacity,
+      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    allLineMaterials.push({ mat, baseColor: color, baseOpacity: opacity });
+    return mat;
+  }
   function latRing(radius,lat,segs=120){const r=radius*Math.cos(lat),y=radius*Math.sin(lat),pts=[];for(let i=0;i<=segs;i++){const a=(i/segs)*Math.PI*2;pts.push(new THREE.Vector3(r*Math.cos(a),y,r*Math.sin(a)));}return new THREE.BufferGeometry().setFromPoints(pts);}
   function meridian(radius,lon,segs=120){const pts=[];for(let i=0;i<=segs;i++){const lat=(i/segs)*Math.PI-Math.PI/2;pts.push(new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),radius*Math.cos(lat)*Math.sin(lon)));}return new THREE.BufferGeometry().setFromPoints(pts);}
 
@@ -1345,6 +1357,19 @@
     }
     chromaPass.uniforms.uTime.value=t;
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    allLineMaterials.forEach(({ mat, baseColor, baseOpacity }) => {
+      if (isLight) {
+        mat.color.setHex(baseColor === C_FAINT ? 0x0284c7 : (baseColor === C_BRIGHT ? 0x0256ea : 0x1d4ed8));
+        mat.opacity = Math.min(1.0, baseOpacity * 2.5);
+        mat.blending = THREE.NormalBlending;
+      } else {
+        mat.color.setHex(baseColor);
+        mat.opacity = baseOpacity;
+        mat.blending = THREE.AdditiveBlending;
+      }
+      mat.needsUpdate = true;
+    });
+
     if (isLight) {
       scene.background = new THREE.Color(0xecfdf5);
       renderer.render(scene, camera);

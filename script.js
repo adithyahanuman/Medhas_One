@@ -69,26 +69,32 @@ function createOrbScene(container, { interactive = true } = {}) {
     controls.enablePan      = false;
   }
 
-  // ——— COLORS (Electric Emerald & Cyber Mint palette) ———
-  const C_BRIGHT = 0x00ff9d;
-  const C_MID    = 0x10b981;
-  const C_DIM    = 0x059669;
-  const C_FAINT  = 0x064e3b;
-  const C_HOT    = 0x6ee7b7;
+  // ——— COLORS (Electric Royal Blue & Neon Cyan palette) ———
+  const C_BRIGHT = 0x00f0ff;
+  const C_MID    = 0x38bdf8;
+  const C_DIM    = 0x0284c7;
+  const C_FAINT  = 0x1d4ed8;
+  const C_HOT    = 0x60a5fa;
 
   // ——— ORB ROOT ———
-    const orbGroup = new THREE.Group();
-  // Cinematic HUD layout: move the orb to the bottom to look like a planetary surface
+  const orbGroup = new THREE.Group();
   orbGroup.position.y = -1; 
   orbGroup.scale.set(3.2, 3.2, 3.2);
   scene.add(orbGroup);
 
-  // ——— HELPERS ———
+  // ——— HELPERS & DYNAMIC THEME MATERIALS ———
+  const allLineMaterials = [];
   function lineMat(color, opacity = 1) {
-    return new THREE.LineBasicMaterial({
-      color, transparent: true, opacity,
-      blending: THREE.AdditiveBlending, depthWrite: false,
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const mat = new THREE.LineBasicMaterial({
+      color: isLight ? (color === C_FAINT ? 0x0284c7 : 0x1d4ed8) : color,
+      transparent: true,
+      opacity: isLight ? Math.min(1.0, opacity * 2.5) : opacity,
+      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending,
+      depthWrite: false,
     });
+    allLineMaterials.push({ mat, baseColor: color, baseOpacity: opacity });
+    return mat;
   }
 
   function latRing(radius, lat, segs = 120) {
@@ -698,6 +704,21 @@ function animate() {
     chromaticPass.uniforms.uTime.value = t;
 
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    
+    // Update line materials dynamically for high-contrast Electric Blue in Light Mode
+    allLineMaterials.forEach(({ mat, baseColor, baseOpacity }) => {
+      if (isLight) {
+        mat.color.setHex(baseColor === C_FAINT ? 0x0284c7 : (baseColor === C_BRIGHT ? 0x0256ea : 0x1d4ed8));
+        mat.opacity = Math.min(1.0, baseOpacity * 2.5);
+        mat.blending = THREE.NormalBlending;
+      } else {
+        mat.color.setHex(baseColor);
+        mat.opacity = baseOpacity;
+        mat.blending = THREE.AdditiveBlending;
+      }
+      mat.needsUpdate = true;
+    });
+
     if (isLight) {
       scene.background = new THREE.Color(0xecfdf5);
       renderer.render(scene, camera);
