@@ -276,73 +276,119 @@
       text-align: center; padding: 24px 12px;
     }
 
-    /* Current session messages (shown in left panel) */
-    #chat-history {
-      display: none; /* hidden — we use session list instead */
-    }
-    .ch-msg {
-      padding: 10px 12px; border-radius: 10px;
-      font-size: 12px; line-height: 1.6;
-      animation: msg-in 0.3s ease-out both;
-    }
-    @keyframes msg-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-    .ch-msg.user {
-      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.2);
-      color: rgba(220,210,255,0.85); margin-left: 10px;
-      border-bottom-right-radius: 2px;
-    }
-    .ch-msg.ai {
-      background: rgba(127,232,255,0.05); border: 1px solid rgba(127,232,255,0.12);
-      color: rgba(200,230,255,0.8); margin-right: 10px;
-      border-bottom-left-radius: 2px;
-    }
-    .ch-sender {
-      font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 1.5px;
-      text-transform: uppercase; margin-bottom: 4px;
-    }
-    .ch-msg.user .ch-sender { color: rgba(167,139,250,0.7); }
-    .ch-msg.ai  .ch-sender { color: rgba(127,232,255,0.6); }
-    .ch-time { font-size: 9px; color: rgba(180,190,215,0.3); margin-top: 4px; text-align: right; }
-
     /* ═══════════════════════════════════════
-       RIGHT PANEL — QUICK ACTIONS
+       RIGHT PANEL — CHAT MESSAGES LOG DRAWER
     ═══════════════════════════════════════ */
     #right-panel {
       position: fixed; right: 0; top: 0; bottom: 0;
-      width: 260px; z-index: 50;
-      transform: translateX(220px);
+      width: 360px; z-index: 95;
+      transform: translateX(360px);
       transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
     }
     #right-panel:hover, #right-panel.open { transform: translateX(0); }
     .rp-tab {
-      position: absolute; left: -28px; top: 50%;
+      position: absolute; left: -34px; top: 50%;
       transform: translateY(-50%);
-      background: rgba(5,8,22,0.8);
-      border: 1px solid rgba(108,99,255,0.25);
+      background: rgba(5,8,22,0.88);
+      border: 1px solid rgba(127,232,255,0.35);
       border-right: none;
-      border-radius: 8px 0 0 8px;
-      padding: 12px 6px;
+      border-radius: 10px 0 0 10px;
+      padding: 14px 7px;
       cursor: pointer;
       writing-mode: vertical-rl; text-orientation: mixed;
-      font-family: 'JetBrains Mono', monospace; font-size: 9px;
-      letter-spacing: 2px; text-transform: uppercase; color: rgba(200,210,230,0.5);
-      backdrop-filter: blur(20px);
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: 2.5px; text-transform: uppercase; color: #7fe8ff;
+      backdrop-filter: blur(24px);
+      box-shadow: -6px 0 25px rgba(0,0,0,0.5);
+      transition: all 0.2s ease;
     }
+    .rp-tab:hover { background: rgba(108,99,255,0.3); border-color: rgba(127,232,255,0.6); color: #fff; }
     .rp-inner {
       height: 100%;
-      background: rgba(5,8,22,0.82);
-      backdrop-filter: blur(32px) saturate(160%);
-      border-left: 1px solid rgba(108,99,255,0.18);
+      background: rgba(5,8,22,0.92);
+      backdrop-filter: blur(36px) saturate(160%);
+      border-left: 1px solid rgba(127,232,255,0.2);
       display: flex; flex-direction: column;
-      padding: 80px 16px 100px;
-      gap: 16px;
+      padding: 80px 14px 20px;
+      gap: 12px;
+      box-shadow: -10px 0 40px rgba(0,0,0,0.6);
+    }
+    .rp-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 12px; border-bottom: 1px solid rgba(108,99,255,0.2);
+      flex-shrink: 0;
     }
     .rp-heading {
-      font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 3px;
-      text-transform: uppercase; color: rgba(108,99,255,0.7);
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(108,99,255,0.1);
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 2px;
+      text-transform: uppercase; color: #7fe8ff; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
     }
+    .rp-close-btn {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.25);
+      color: rgba(200,210,230,0.6); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; cursor: pointer; transition: all 0.2s;
+    }
+    .rp-close-btn:hover { background: rgba(255,80,80,0.2); color: #ff6b6b; border-color: rgba(255,80,80,0.4); }
+
+    /* Active Chat Messages Log Container */
+    #chat-history {
+      display: flex !important;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 4px 14px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(127,232,255,0.25) transparent;
+    }
+    .ch-empty {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      color: rgba(180,190,215,0.4); text-align: center; margin: auto;
+      letter-spacing: 1px; line-height: 1.6; padding: 20px;
+    }
+    .ch-msg {
+      padding: 10px 14px; border-radius: 12px;
+      font-size: 12.5px; line-height: 1.65; word-break: break-word;
+      animation: msg-in 0.3s ease-out both; position: relative;
+    }
+    @keyframes msg-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .ch-msg.user {
+      background: rgba(108,99,255,0.14); border: 1px solid rgba(108,99,255,0.3);
+      color: #e2d9ff; margin-left: 20px;
+      border-bottom-right-radius: 3px;
+    }
+    .ch-msg.ai {
+      background: rgba(127,232,255,0.07); border: 1px solid rgba(127,232,255,0.2);
+      color: #d1f4ff; margin-right: 12px;
+      border-bottom-left-radius: 3px;
+    }
+    .ch-sender {
+      font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 4px; font-weight: 700;
+    }
+    .ch-msg.user .ch-sender { color: #a78bfa; }
+    .ch-msg.ai .ch-sender   { color: #7fe8ff; }
+    .ch-time { font-size: 8.5px; color: rgba(180,190,215,0.35); margin-top: 5px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+    /* Key Modal CSS */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-card {
+      width: min(440px, 90vw); background: rgba(8,13,26,0.95);
+      border: 1px solid rgba(127,232,255,0.3); border-radius: 16px;
+      padding: 22px; box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .modal-header h3 { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7fe8ff; letter-spacing: 1px; }
+    .modal-close { background: none; border: none; color: rgba(200,210,230,0.5); font-size: 14px; cursor: pointer; }
+    .modal-close:hover { color: #ff6b6b; }
+
 
     /* Quick action chips */
     .qa-grid { display: flex; flex-direction: column; gap: 6px; }
@@ -739,15 +785,17 @@
   </div>
   <div class="tb-sep"></div>
   <div class="tb-actions">
-    <div class="tb-icon-btn" title="History" onclick="togglePanel('left')">💬</div>
+    <div class="tb-icon-btn" title="Previous Chats (Left Panel)" onclick="togglePanel('left')">📜</div>
+    <div class="tb-icon-btn" title="Chat Messages Log (Right Drawer)" onclick="togglePanel('right')">💬</div>
+    <div class="tb-icon-btn" title="API Key Settings" onclick="openKeyModal()">⚙</div>
   </div>
   <div class="tb-sep"></div>
   <a href="signin.html" class="tb-exit" onclick="window.exitApp?.(event)">← Exit</a>
 </div>
 
-<!-- Left panel -->
+<!-- Left panel — Previous Chats -->
 <div id="left-panel">
-  <div class="lp-tab" onclick="togglePanel('left')">History</div>
+  <div class="lp-tab" onclick="togglePanel('left')">Chats</div>
   <div class="lp-inner">
     <!-- New Chat button -->
     <button id="new-chat-btn" onclick="window.newChat?.()">
@@ -761,9 +809,22 @@
     <div id="session-list">
       <div class="sess-empty">Loading sessions…</div>
     </div>
+  </div>
+</div>
 
-    <!-- Hidden legacy div (still used by addToHistory for compatibility) -->
-    <div id="chat-history" style="display:none"></div>
+<!-- Right panel — Chat Messages Log Drawer -->
+<div id="right-panel">
+  <div class="rp-tab" onclick="togglePanel('right')" title="Toggle Chat Messages">💬 Messages</div>
+  <div class="rp-inner">
+    <div class="rp-header">
+      <div class="rp-heading">💬 Chat Messages</div>
+      <button class="rp-close-btn" onclick="togglePanel('right')" title="Close Drawer">✕</button>
+    </div>
+    
+    <!-- Active Conversation History Log Container -->
+    <div id="chat-history">
+      <div class="ch-empty">Select a conversation or type a message below to view the chat log.</div>
+    </div>
   </div>
 </div>
 
@@ -1252,14 +1313,28 @@ setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList
 // CHAT PRIMITIVES (Driven by assistant.js module)
 // ════════════════════════════════════════════
 function addToHistory(role, text){
-  // Update the bubble / AI display only — session list is the persistent record
-  const hist=document.getElementById('chat-history');
+  const hist = document.getElementById('chat-history');
   if (!hist) return;
-  const now=new Date().toTimeString().split(' ')[0].slice(0,-3);
-  const el=document.createElement('div');
-  el.className='ch-msg '+role;
-  el.innerHTML=`<div class="ch-sender">${role==='user'?'You':'MEDHAS'}</div>${text}<div class="ch-time">${now}</div>`;
+
+  const empty = hist.querySelector('.ch-empty');
+  if (empty) empty.remove();
+
+  const now = new Date().toTimeString().slice(0, 5);
+  const el  = document.createElement('div');
+  el.className = 'ch-msg ' + role;
+  el.innerHTML = `
+    <div class="ch-sender">${role === 'user' ? 'You' : 'MEDHAS'}</div>
+    <div class="ch-text">${text}</div>
+    <div class="ch-time">${now}</div>
+  `;
   hist.appendChild(el);
+  hist.scrollTop = hist.scrollHeight;
+
+  // Open right panel drawer automatically when a message is added
+  const rp = document.getElementById('right-panel');
+  if (rp && !rp.classList.contains('open')) {
+    rp.classList.add('open');
+  }
 }
 
 // ════════════════════════════════════════════
@@ -1509,14 +1584,21 @@ function _incQueryCount() {
 
 async function _loadSessionList() {
   try {
+    if (location.hostname.endsWith('github.io')) {
+      const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+      window.renderSessionList(localSessions, window._activeSessionId);
+      return;
+    }
     const origin = (location.protocol === 'file:' || !location.host)
       ? 'http://localhost:3000' : location.origin;
     const res  = await fetch(`${origin}/api/sessions`);
-    if (!res.ok) return;
+    if (!res.ok) throw new Error('Server unavailable');
     const { sessions } = await res.json();
     window.renderSessionList(sessions, window._activeSessionId);
   } catch (e) {
-    console.warn('[SessionList] fetch error:', e.message);
+    console.warn('[SessionList] Server fetch unavailable, loading local sessions:', e.message);
+    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    window.renderSessionList(localSessions, window._activeSessionId);
   }
 }
 
@@ -1524,55 +1606,59 @@ async function _loadSessionList() {
 window.newChat = async () => {
   assistant.interrupt();
   hideBubble();
-  document.getElementById('chat-history').innerHTML = '';
+  const hist = document.getElementById('chat-history');
+  if (hist) hist.innerHTML = '<div class="ch-empty">New conversation started. Type a message below to begin!</div>';
   document.getElementById('suggestions')?.classList.remove('hidden');
   await assistant.startNewSession();
   showToast('New conversation started', 2000);
-  // Open the panel briefly so user sees the new session
-  const lp = document.getElementById('left-panel');
-  if (lp) {
-    lp.classList.add('open');
-    clearTimeout(window._lpTimer);
-    window._lpTimer = setTimeout(() => lp.classList.remove('open'), 3500);
-  }
 };
 
-/** Click a session card — load that session's history */
+/** Click a session card — load that session's history into the right panel drawer */
 window.onSessionClick = async (sessionId) => {
   if (sessionId === window._activeSessionId) return;
   const result = await assistant.loadSession(sessionId);
   if (!result) { showToast('Could not load session', 3000); return; }
 
-  // Render messages in the left panel chat-history div
+  // Render messages in the right panel chat-history container
   const hist = document.getElementById('chat-history');
   if (hist) {
     hist.innerHTML = '';
-    for (const msg of result.messages) {
-      const el  = document.createElement('div');
-      const ts  = new Date(msg.created_at).toTimeString().slice(0, 5);
-      el.className = 'ch-msg ' + msg.role;
-      el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div>${msg.content}<div class="ch-time">${ts}</div>`;
-      hist.appendChild(el);
+    if (result.messages && result.messages.length) {
+      for (const msg of result.messages) {
+        const el  = document.createElement('div');
+        const ts  = new Date(msg.created_at || Date.now()).toTimeString().slice(0, 5);
+        el.className = 'ch-msg ' + msg.role;
+        el.innerHTML = `<div class="ch-sender">${msg.role === 'user' ? 'You' : 'MEDHAS'}</div><div class="ch-text">${msg.content}</div><div class="ch-time">${ts}</div>`;
+        hist.appendChild(el);
+      }
+      hist.scrollTop = hist.scrollHeight;
+    } else {
+      hist.innerHTML = '<div class="ch-empty">No messages in this chat yet. Type a message below to start!</div>';
     }
   }
   hideBubble();
   showToast(`Loaded: "${result.session.title}"`, 2200);
-  // Open panel
-  const lp = document.getElementById('left-panel');
-  if (lp) {
-    lp.classList.add('open');
-    clearTimeout(window._lpTimer);
-    window._lpTimer = setTimeout(() => lp.classList.remove('open'), 4000);
+
+  // Automatically open the Right Panel Chat Drawer so user sees the messages!
+  const rp = document.getElementById('right-panel');
+  if (rp) {
+    rp.classList.add('open');
   }
 };
 
 /** Delete a session */
 window.onSessionDelete = async (sessionId) => {
   try {
-    const origin = (location.protocol === 'file:' || !location.host)
-      ? 'http://localhost:3000' : location.origin;
-    await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' });
-    // If we deleted the active session, start a new one
+    if (!location.hostname.endsWith('github.io')) {
+      const origin = (location.protocol === 'file:' || !location.host)
+        ? 'http://localhost:3000' : location.origin;
+      await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    }
+    // Also remove from local storage
+    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]').filter(s => s.id !== sessionId);
+    localStorage.setItem('medhas_local_sessions', JSON.stringify(localSessions));
+    localStorage.removeItem(`medhas_msgs_${sessionId}`);
+
     if (sessionId === window._activeSessionId) {
       await window.newChat();
     } else {
@@ -1582,6 +1668,37 @@ window.onSessionDelete = async (sessionId) => {
   } catch (e) {
     showToast('Could not delete session', 3000);
   }
+};
+
+// ── Key Settings Modal Controls ────────────────────────────────────────────────
+window.openKeyModal = () => {
+  const modal = document.getElementById('key-modal');
+  const input = document.getElementById('api-key-input');
+  if (input) input.value = localStorage.getItem('medhas_gemini_api_key') || '';
+  if (modal) modal.classList.add('open');
+};
+window.closeKeyModal = (e) => {
+  if (e && e.target !== document.getElementById('key-modal')) return;
+  document.getElementById('key-modal')?.classList.remove('open');
+};
+window.saveApiKey = () => {
+  const input = document.getElementById('api-key-input');
+  const val = input?.value?.trim() ?? '';
+  if (val) {
+    localStorage.setItem('medhas_gemini_api_key', val);
+    showToast('Gemini API Key saved!', 2000);
+  } else {
+    localStorage.removeItem('medhas_gemini_api_key');
+    showToast('API Key cleared', 2000);
+  }
+  document.getElementById('key-modal')?.classList.remove('open');
+};
+window.clearApiKey = () => {
+  localStorage.removeItem('medhas_gemini_api_key');
+  const input = document.getElementById('api-key-input');
+  if (input) input.value = '';
+  showToast('API Key cleared', 2000);
+  document.getElementById('key-modal')?.classList.remove('open');
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1748,6 +1865,26 @@ const _originalToast = window.showToast;  // keep reference for reuse
 if (!tts.isSupported) {
   showToast('⚠ Text-to-speech is not supported in this browser', 5000);
 }
-</script>
+<!-- API Key Settings Modal -->
+<div id="key-modal" class="modal-overlay" onclick="closeKeyModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>⚙ Gemini API Key Settings</h3>
+      <button class="modal-close" onclick="closeKeyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px; color:rgba(200,210,230,0.75); margin-bottom:14px; line-height:1.5;">
+        Required for AI responses on <strong>GitHub Pages</strong> or when local server proxy is unreachable.
+      </p>
+      <label style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7fe8ff; text-transform:uppercase; display:block; margin-bottom:6px;">Gemini API Key</label>
+      <input type="password" id="api-key-input" placeholder="AIzaSy... or AQ..." style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(5,8,22,0.8); border:1px solid rgba(108,99,255,0.3); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; margin-bottom:14px;" />
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="clearApiKey()" style="padding:8px 14px; border-radius:8px; background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); color:#ff6b6b; font-size:11px; cursor:pointer;">Clear Key</button>
+        <button onclick="saveApiKey()" style="padding:8px 18px; border-radius:8px; background:rgba(108,99,255,0.3); border:1px solid rgba(108,99,255,0.6); color:#c4b5fd; font-size:11px; font-weight:600; cursor:pointer;">Save Key</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
+

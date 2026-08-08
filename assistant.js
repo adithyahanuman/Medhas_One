@@ -162,27 +162,36 @@ export class Assistant {
   async startNewSession() {
     try {
       const origin = this.#getOrigin();
-      const res = await fetch(`${origin}/api/sessions`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ title: 'New Chat' }),
-      });
-      if (res.ok) {
-        const { session } = await res.json();
-        this.#sessionId = session.id;
-        this.#history   = [];
-        localStorage.setItem('medhas_active_session_id', session.id);
-        this.#onSessionChange({ session, isNew: true });
-        console.log('[Assistant] New session created:', session.id);
-        return session.id;
+      if (!location.hostname.endsWith('github.io')) {
+        const res = await fetch(`${origin}/api/sessions`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ title: 'New Chat' }),
+        });
+        if (res.ok) {
+          const { session } = await res.json();
+          this.#sessionId = session.id;
+          this.#history   = [];
+          localStorage.setItem('medhas_active_session_id', session.id);
+          this.#onSessionChange({ session, isNew: true, messages: [] });
+          console.log('[Assistant] New session created on server:', session.id);
+          return session.id;
+        }
       }
     } catch (e) {
-      console.warn('[Assistant] Could not create session:', e.message);
+      console.warn('[Assistant] Could not create server session:', e.message);
     }
-    // Fallback: operate without persistence
-    this.#sessionId = null;
+    // Local storage session fallback for static site (GitHub Pages)
+    const localId = 'session_' + Date.now();
+    const session = { id: localId, title: 'New Chat', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    this.#sessionId = localId;
     this.#history   = [];
-    return null;
+    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    localSessions.unshift(session);
+    localStorage.setItem('medhas_local_sessions', JSON.stringify(localSessions));
+    localStorage.setItem('medhas_active_session_id', localId);
+    this.#onSessionChange({ session, isNew: true, messages: [] });
+    return localId;
   }
 
   /**
@@ -193,20 +202,30 @@ export class Assistant {
   async loadSession(sessionId) {
     try {
       const origin = this.#getOrigin();
-      const res = await fetch(`${origin}/api/sessions/${sessionId}/messages`);
-      if (res.ok) {
-        const { session, messages } = await res.json();
-        this.#sessionId = sessionId;
-        this.#history   = messages.map(m => ({ role: m.role, content: m.content }));
-        localStorage.setItem('medhas_active_session_id', sessionId);
-        this.#onSessionChange({ session, isNew: false });
-        console.log(`[Assistant] Loaded session ${sessionId} with ${messages.length} messages`);
-        return { session, messages };
+      if (!location.hostname.endsWith('github.io')) {
+        const res = await fetch(`${origin}/api/sessions/${sessionId}/messages`);
+        if (res.ok) {
+          const { session, messages } = await res.json();
+          this.#sessionId = sessionId;
+          this.#history   = messages.map(m => ({ role: m.role, content: m.content }));
+          localStorage.setItem('medhas_active_session_id', sessionId);
+          this.#onSessionChange({ session, isNew: false, messages });
+          console.log(`[Assistant] Loaded session ${sessionId} with ${messages.length} messages`);
+          return { session, messages };
+        }
       }
     } catch (e) {
-      console.warn('[Assistant] Could not load session:', e.message);
+      console.warn('[Assistant] Could not load server session:', e.message);
     }
-    return null;
+    // Local storage fallback
+    const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    const session = localSessions.find(s => s.id === sessionId) || { id: sessionId, title: 'Chat', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const messages = JSON.parse(localStorage.getItem(`medhas_msgs_${sessionId}`) || '[]');
+    this.#sessionId = sessionId;
+    this.#history   = messages.map(m => ({ role: m.role, content: m.content }));
+    localStorage.setItem('medhas_active_session_id', sessionId);
+    this.#onSessionChange({ session, isNew: false, messages });
+    return { session, messages };
   }
 
   /** Start microphone listening */
@@ -289,53 +308,69 @@ export class Assistant {
 
     try {
       const origin = this.#getOrigin();
+      const isStaticSite = location.hostname.endsWith('github.io') || location.hostname.includes('github.app');
 
-      // ── Fetch from stream endpoint (collects full reply) ───────────────────
-      const res = await fetch(`${origin}/api/chat/stream`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          message:   text,
-          sessionId: this.#sessionId,
-          history:   this.#history,
-        }),
-        signal,
-      });
+      if (!isStaticSite) {
+        // ── Fetch from stream endpoint (collects full reply) ───────────────────
+        try {
+          const res = await fetch(`${origin}/api/chat/stream`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+              message:   text,
+              sessionId: this.#sessionId,
+              history:   this.#history,
+            }),
+            signal,
+          });
 
-      if (res.ok) {
-        const reader  = res.body.getReader();
-        const decoder = new TextDecoder();
-        let streamBuffer = '';
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          streamBuffer += decoder.decode(value, { stream: true });
-          const lines = streamBuffer.split('\n');
-          streamBuffer = lines.pop() ?? ''; // keep incomplete line fragment
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6).trim();
-            if (!raw || raw === '[DONE]') continue;
-            try { reply += JSON.parse(raw).text ?? ''; } catch {}
+          if (res.ok) {
+            const reader  = res.body.getReader();
+            const decoder = new TextDecoder();
+            let streamBuffer = '';
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              streamBuffer += decoder.decode(value, { stream: true });
+              const lines = streamBuffer.split('\n');
+              streamBuffer = lines.pop() ?? ''; // keep incomplete line fragment
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const raw = line.slice(6).trim();
+                if (!raw || raw === '[DONE]') continue;
+                try { reply += JSON.parse(raw).text ?? ''; } catch {}
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[Assistant] Stream proxy fetch failed, trying fallback:', e.message);
+        }
+
+        reply = reply.trim();
+
+        // ── Fallback to JSON endpoint if stream returned nothing ───────────────
+        if (!reply) {
+          try {
+            const jsonRes = await fetch(`${origin}/api/chat`, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({
+                message:   text,
+                sessionId: this.#sessionId,
+                history:   this.#history,
+              }),
+              signal,
+            });
+            if (jsonRes.ok) reply = ((await jsonRes.json()).reply ?? '').trim();
+          } catch (e) {
+            console.warn('[Assistant] JSON proxy fetch failed:', e.message);
           }
         }
       }
 
-      reply = reply.trim();
-
-      // ── Fallback to JSON endpoint if stream returned nothing ───────────────
+      // ── Client-side direct Gemini API fallback (GitHub Pages / offline server) ─
       if (!reply) {
-        const jsonRes = await fetch(`${origin}/api/chat`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            message:   text,
-            sessionId: this.#sessionId,
-            history:   this.#history,
-          }),
-          signal,
-        });
-        if (jsonRes.ok) reply = ((await jsonRes.json()).reply ?? '').trim();
+        reply = await this.#fetchDirectGemini(text, signal);
       }
 
       if (!reply) throw new Error('No response received from AI.');
@@ -349,9 +384,25 @@ export class Assistant {
     }
 
     // ── Deliver reply to UI ────────────────────────────────────────────────────
-    // Append to in-memory history (server already persisted both sides)
+    // Append to in-memory history
     this.#history.push({ role: 'user',  content: text });
     this.#history.push({ role: 'ai',    content: reply });
+
+    // Save to local storage for static site fallback persistence
+    if (this.#sessionId) {
+      const msgs = JSON.parse(localStorage.getItem(`medhas_msgs_${this.#sessionId}`) || '[]');
+      msgs.push({ role: 'user', content: text, created_at: new Date().toISOString() });
+      msgs.push({ role: 'ai', content: reply, created_at: new Date().toISOString() });
+      localStorage.setItem(`medhas_msgs_${this.#sessionId}`, JSON.stringify(msgs));
+
+      // Update session title if first message
+      const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+      const sIndex = localSessions.findIndex(s => s.id === this.#sessionId);
+      if (sIndex !== -1 && localSessions[sIndex].title === 'New Chat') {
+        localSessions[sIndex].title = text.slice(0, 30) + (text.length > 30 ? '…' : '');
+        localStorage.setItem('medhas_local_sessions', JSON.stringify(localSessions));
+      }
+    }
 
     this.#onAIReply(reply);
 
@@ -367,6 +418,65 @@ export class Assistant {
       onEnd:       ()       => { this.#speechActive = false; this.#subtitle?.clear(); this.#setState('idle'); },
       onError:     ()       => { this.#speechActive = false; this.#subtitle?.clear(); this.#setState('idle'); },
     });
+  }
+
+  // ── Private: Direct Gemini Client-side Call for Static Web ────────────────
+  async #fetchDirectGemini(text, signal) {
+    let apiKey = localStorage.getItem('medhas_gemini_api_key');
+    if (!apiKey) {
+      apiKey = prompt('MEDHAS AI Notice:\n\nTo enable AI responses on GitHub Pages, enter your Gemini API Key:\n(Key is saved securely in your browser)');
+      if (apiKey) {
+        apiKey = apiKey.trim();
+        localStorage.setItem('medhas_gemini_api_key', apiKey);
+      }
+    }
+    if (!apiKey) {
+      throw new Error('Gemini API key required on GitHub Pages. Click ⚙ Key in the top bar to set it.');
+    }
+
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let lastError = null;
+
+    const contents = [
+      ...this.#history.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      })),
+      { role: 'user', parts: [{ text }] }
+    ];
+
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
+          }),
+          signal,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (replyText) return replyText.trim();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = errData.error?.message || `HTTP ${res.status}`;
+          // If invalid key error, clear saved key so user is prompted next time
+          if (res.status === 400 || res.status === 403) {
+            localStorage.removeItem('medhas_gemini_api_key');
+          }
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        lastError = e.message;
+      }
+    }
+
+    throw new Error(lastError || 'Could not reach Gemini API.');
   }
 
   // ── Private: state transition ─────────────────────────────────────────────
@@ -385,3 +495,4 @@ export class Assistant {
       : location.origin;
   }
 }
+
