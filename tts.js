@@ -196,16 +196,28 @@ export class TTSEngine {
       if (v) return v;
     }
 
-    // 2. Try any voice with 'female' in name
-    const femaleAny = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'));
+    // 2. Try any voice with female indicators
+    const femaleAny = voices.find(v => 
+      v.name.toLowerCase().includes('female') || 
+      v.name.toLowerCase().includes('zira') || 
+      v.name.toLowerCase().includes('samantha') ||
+      v.name.toLowerCase().includes('jenny') ||
+      v.name.toLowerCase().includes('aria') ||
+      v.name.toLowerCase().includes('hazel') ||
+      v.name.toLowerCase().includes('susan') ||
+      v.name.toLowerCase().includes('catherine')
+    );
     if (femaleAny) return femaleAny;
 
-    // 3. Fallback: pick any English voice that is NOT explicitly male (David, Mark, George, Male)
-    const MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male'];
+    // 3. Reject ALL male voices strictly (David, Mark, George, James, Richard, Male, Guy, Stefan, Pablo)
+    const MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male', 'guy', 'stefan', 'pablo'];
     const nonMaleEn = voices.find(v => v.lang.startsWith('en') && !MALE_NAMES.some(m => v.name.toLowerCase().includes(m)));
     if (nonMaleEn) return nonMaleEn;
 
-    return voices.find(v => v.lang.startsWith('en')) ?? voices[0] ?? null;
+    const anyNonMale = voices.find(v => !MALE_NAMES.some(m => v.name.toLowerCase().includes(m)));
+    if (anyNonMale) return anyNonMale;
+
+    return voices[0] ?? null;
   }
 
   #wordLengthAt(text, charIdx) {

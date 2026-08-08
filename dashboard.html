@@ -1837,7 +1837,8 @@ window._deliverReply = function(reply, userText) {
       voices = window.speechSynthesis.getVoices();
     }
     
-    var PREFERRED_FEMALES = ['google uk english female', 'google us english', 'microsoft jenny online (natural)', 'microsoft aria online (natural)', 'microsoft zira', 'samantha', 'karen', 'victoria', 'fiona', 'moira', 'tessa', 'zira', 'female'];
+    var PREFERRED_FEMALES = ['microsoft zira', 'google uk english female', 'google us english', 'microsoft jenny online (natural)', 'microsoft aria online (natural)', 'samantha', 'karen', 'victoria', 'fiona', 'moira', 'tessa', 'zira', 'female'];
+    var MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male', 'guy', 'stefan', 'pablo'];
     var femaleVoice = null;
     if (voices && voices.length) {
       for (var i = 0; i < PREFERRED_FEMALES.length; i++) {
@@ -1845,11 +1846,9 @@ window._deliverReply = function(reply, userText) {
         if (match) { femaleVoice = match; break; }
       }
       if (!femaleVoice) {
-        femaleVoice = voices.find(function(v) { return v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'); });
-      }
-      if (!femaleVoice) {
-        var MALE_NAMES = ['david', 'mark', 'george', 'james', 'richard', 'male'];
-        femaleVoice = voices.find(function(v) { return v.lang.startsWith('en') && !MALE_NAMES.some(function(m) { return v.name.toLowerCase().includes(m); }); });
+        femaleVoice = voices.find(function(v) { 
+          return !MALE_NAMES.some(function(m) { return v.name.toLowerCase().includes(m); }); 
+        });
       }
     }
     if (femaleVoice) utt.voice = femaleVoice;
@@ -2047,12 +2046,21 @@ window.newChat = async function() {
 
 // ── Clear current chat ────────────────────────────────────────────────────────
 window.clearCurrentChat = async function() {
+  var activeId = window._activeSessionId;
+  if (activeId) {
+    var local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    var updated = local.filter(function(s) { return s.id !== activeId; });
+    localStorage.setItem('medhas_local_sessions', JSON.stringify(updated));
+    localStorage.removeItem('medhas_msgs_' + activeId);
+    if (typeof window.renderSessionList === 'function') {
+      window.renderSessionList(updated, null);
+    }
+  }
   if (window._assistant && window._assistant.deleteCurrentSession) {
     await window._assistant.deleteCurrentSession();
   }
-  var hist = document.getElementById('chat-history');
-  if (hist) hist.innerHTML = '<div class="ch-empty">Chat cleared. Start a new conversation!</div>';
-  window.showToast('Chat deleted', 1500);
+  await window.newChat?.();
+  window.showToast('Conversation deleted', 1500);
 };
 
 // ── File upload ───────────────────────────────────────────────────────────────
@@ -2265,12 +2273,30 @@ window.onSessionClick = async (sessionId) => {
 
 window.onSessionDelete = async (sessionId) => {
   try {
-    const origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
-    await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
-    if (sessionId === window._activeSessionId) await window.newChat?.();
-    else loadSessionList();
-    window.showToast?.('Deleted', 1500);
-  } catch(e) {}
+    // 1. Remove session entry from localStorage session list
+    var local = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+    var updated = local.filter(function(s) { return s.id !== sessionId; });
+    localStorage.setItem('medhas_local_sessions', JSON.stringify(updated));
+
+    // 2. Remove session messages array from localStorage
+    localStorage.removeItem('medhas_msgs_' + sessionId);
+
+    // 3. Send DELETE to backend server if connected
+    var origin = (location.protocol==='file:' || !location.host) ? 'http://localhost:3000' : location.origin;
+    await fetch(`${origin}/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(function() {});
+
+    // 4. Update view immediately
+    if (sessionId === window._activeSessionId) {
+      await window.newChat?.();
+    } else {
+      if (typeof window.renderSessionList === 'function') {
+        window.renderSessionList(updated, window._activeSessionId);
+      }
+    }
+    window.showToast?.('Conversation deleted', 1500);
+  } catch(e) {
+    console.warn('[MEDHAS] onSessionDelete error:', e);
+  }
 };
 
 // Initialise assistant (starts session + loads history)
