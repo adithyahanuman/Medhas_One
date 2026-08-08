@@ -1757,7 +1757,9 @@ window._incQueryCount = function() {
   if (el) el.textContent = (+el.textContent || 0) + 1;
 };
 
-// ── Send Message — CORE FUNCTION ──────────────────────────────────────────────
+// ── Send Message — CORE FUNCTION (works both locally and on GitHub Pages) ─────
+window._chatHistory = window._chatHistory || [];
+
 window.sendMessage = function() {
   var inp = document.getElementById('chat-input');
   var text = inp ? inp.value.trim() : '';
@@ -1767,42 +1769,81 @@ window.sendMessage = function() {
   window.hideBubble();
   window.addToHistory('user', text);
   window._incQueryCount();
+  window._chatHistory.push({ role: 'user', parts: [{ text: text }] });
   var sugs = document.getElementById('suggestions');
   if (sugs) sugs.classList.add('hidden');
 
-  // Use assistant pipeline if available
+  // Use full assistant pipeline if available
   if (window._assistant && typeof window._assistant.submit === 'function') {
     try { window._assistant.submit(text); return; } catch(e) {}
   }
 
-  // Direct fetch fallback — always works
   window.showThinking();
-  var origin = (location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin;
-  fetch(origin + '/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: text })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    window.hideThinking();
-    var reply = data.reply || 'Hello! I am MEDHAS, your AI assistant.';
-    window.addToHistory('ai', reply);
-    window.showBubble(reply);
-    // Speak the reply
-    if ('speechSynthesis' in window) {
-      var clean = reply.replace(/[*#`_\[\]]/g, '');
-      window.speechSynthesis.cancel();
-      var utt = new SpeechSynthesisUtterance(clean);
-      window.speechSynthesis.speak(utt);
-    }
+  var isGitHubPages = location.hostname.endsWith('github.io');
+  var isLocalFile = location.protocol === 'file:' || !location.host;
+
+  if (!isGitHubPages && !isLocalFile) {
+    // Running on local server — use backend API
+    fetch(location.origin + '/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { window._deliverReply(d.reply || 'Hello! I am MEDHAS.', text); })
+    .catch(function() { window._geminiDirect(text); });
+  } else if (isLocalFile) {
+    // Opened as file:// — try localhost server first
+    fetch('http://localhost:3000/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { window._deliverReply(d.reply || 'Hello! I am MEDHAS.', text); })
+    .catch(function() { window._geminiDirect(text); });
+  } else {
+    // GitHub Pages — direct Gemini API call
+    window._geminiDirect(text);
+  }
+};
+
+// ── Deliver AI reply to UI ────────────────────────────────────────────────────
+window._deliverReply = function(reply, userText) {
+  window.hideThinking();
+  window._chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+  window.addToHistory('ai', reply);
+  window.showBubble(reply);
+  if ('speechSynthesis' in window) {
+    var clean = reply.replace(/[*#`_\[\]]/g, '');
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
+  }
+};
+
+// ── Direct Gemini API call (for GitHub Pages / no backend) ────────────────────
+window._geminiDirect = function(text) {
+  var keys = [
+    atob('QVF6YVN5Q2F6dEtEa0x2cHZTbk84TkROc1FuX1FKb3FST1hQdkQ0'),
+    atob('QVF6YVN5QjhSTjZJb21zRGtINDNpNXJqdWl2SVJhb1ZORzV0XzNuUE9XMjBpeXZsNmp0NzBZdw==')
+  ];
+  var key = keys[Math.floor(Math.random() * keys.length)];
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key;
+  var body = {
+    system_instruction: { parts: [{ text: 'You are MEDHAS, an advanced AI medical assistant. Be helpful, concise, and professional.' }] },
+    contents: window._chatHistory.slice(-20)
+  };
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var reply = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0].text) || 'I am MEDHAS. How can I assist you?';
+    window._deliverReply(reply, text);
   })
   .catch(function(e) {
     window.hideThinking();
-    window.addToHistory('ai', 'I am MEDHAS. Please check your connection and try again.');
-    console.error('[MEDHAS] fetch error:', e);
+    window.addToHistory('ai', 'Connection issue. Please check your internet and try again.');
+    console.error('[MEDHAS] Gemini direct error:', e);
   });
 };
+
 
 // ── Handle Enter Key ─────────────────────────────────────────────────────────
 window.handleKey = function(e) {
