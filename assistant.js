@@ -306,7 +306,42 @@ export class Assistant {
     this.#tts?.cancel();
     this.#subtitle?.clear();
     this.#speechActive = false;
+    this.stopListening();
     if (this.#state !== 'idle') this.#setState('idle');
+  }
+
+  /** Stop any active AI generation or TTS speech output immediately */
+  stop() {
+    this.interrupt();
+  }
+
+  /** Delete current session history */
+  async deleteCurrentSession() {
+    this.interrupt();
+    const currentId = this.#sessionId;
+
+    if (currentId) {
+      try {
+        const origin = this.#getOrigin();
+        await fetch(`${origin}/api/sessions/${currentId}`, { method: 'DELETE' });
+      } catch (e) {
+        console.warn('[Assistant] Could not delete server session:', e.message);
+      }
+
+      // Clear local storage persistent messages
+      localStorage.removeItem(`medhas_msgs_${currentId}`);
+      
+      // Remove session from local session list
+      const localSessions = JSON.parse(localStorage.getItem('medhas_local_sessions') || '[]');
+      const updated = localSessions.filter(s => s.id !== currentId);
+      localStorage.setItem('medhas_local_sessions', JSON.stringify(updated));
+    }
+
+    this.#history = [];
+    this.#sessionId = null;
+
+    // Create fresh new session
+    return this.createSession();
   }
 
   /** Cleanly close Live Session on page exit */

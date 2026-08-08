@@ -615,7 +615,8 @@
     /* ═══════════════════════════════════════
        AI RESPONSE BUBBLE
     ═══════════════════════════════════════ */
-    #ai-bubble {
+    #ai-bubble,
+    #subtitle-bar {
       display: none !important;
     }
     .bubble-header {
@@ -1023,7 +1024,13 @@
   <div class="rp-inner">
     <div class="rp-header">
       <div class="rp-heading">💬 Chat Messages</div>
-      <button class="rp-close-btn" onclick="togglePanel('right')" title="Close Drawer">✕</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="rp-del-btn" id="del-chat-btn" onclick="window.clearCurrentChat?.()" title="Delete Chat History" style="background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete Chat
+        </button>
+        <button class="rp-close-btn" onclick="togglePanel('right')" title="Close Drawer">✕</button>
+      </div>
     </div>
     
     <!-- Active Conversation History Log Container -->
@@ -1117,6 +1124,10 @@
       </div>
       
       <div class="ai-tools-right">
+        <!-- Stop AI speaking / generating button -->
+        <button class="ai-tool-btn stop-btn" id="stop-btn" type="button" onclick="event.stopPropagation(); window.stopAI?.()" title="Stop AI response & speech" style="display:none; color:#ef4444; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); border-radius:8px; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer; margin-right:4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        </button>
         <!-- Voice assistant microphone button -->
         <button class="ai-tool-btn" id="mic-btn" type="button" onclick="event.stopPropagation(); window.toggleMic?.()" title="Voice input">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
@@ -1720,6 +1731,12 @@ function _applyUIState(state) {
   // Thinking indicator
   state === 'thinking' ? showThinking() : hideThinking();
 
+  // Stop button visibility
+  const stopBtn = document.getElementById('stop-btn');
+  if (stopBtn) {
+    stopBtn.style.display = (state === 'thinking' || state === 'speaking') ? 'inline-flex' : 'none';
+  }
+
   // Reset mic button (unless we're now listening)
   if (state !== 'listening') _resetMicBtn();
 
@@ -1728,6 +1745,25 @@ function _applyUIState(state) {
     setTimeout(hideBubble, 600);
   }
 }
+
+window.stopAI = function() {
+  window.assistant?.stop();
+  const stopBtn = document.getElementById('stop-btn');
+  if (stopBtn) stopBtn.style.display = 'none';
+  showToast('AI response stopped');
+};
+
+window.clearCurrentChat = async function() {
+  if (window.assistant) {
+    await window.assistant.deleteCurrentSession();
+  }
+  const hist = document.getElementById('chat-history');
+  if (hist) {
+    hist.innerHTML = '<div class="ch-empty">Chat history cleared.</div>';
+  }
+  if (typeof _loadSessionList === 'function') _loadSessionList();
+  showToast('Chat history deleted');
+};
 
 // ── Mic helpers ───────────────────────────────────────────────────────────────
 function _resetMicBtn() {
