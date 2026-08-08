@@ -975,6 +975,11 @@
     #ai-orb-3d-container,
     #ai-orb-3d-container spline-viewer {
       background: transparent !important;
+      mix-blend-mode: screen;
+    }
+    html[data-theme="light"] #ai-orb-3d-container spline-viewer {
+      mix-blend-mode: multiply !important;
+      filter: invert(1) hue-rotate(180deg) !important;
     }
     #ai-orb-3d-container spline-viewer::part(canvas),
     #ai-orb-3d-container canvas {
@@ -2138,7 +2143,32 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
     const splineViewer = document.getElementById('spline-orb-viewer');
     try {
       if (splineViewer && splineViewer.spline && splineViewer.spline._scene) {
-        splineViewer.spline._scene.background = null;
+        const scene = splineViewer.spline._scene;
+        scene.background = null;
+        scene.traverse((obj) => {
+          if (obj.name && (
+            obj.name.toLowerCase().includes('bg') ||
+            obj.name.toLowerCase().includes('background') ||
+            obj.name.toLowerCase().includes('plane') ||
+            obj.name.toLowerCase().includes('rectangle') ||
+            obj.name.toLowerCase().includes('floor') ||
+            obj.name.toLowerCase().includes('wall') ||
+            obj.name.toLowerCase().includes('sky')
+          )) {
+            obj.visible = false;
+          }
+          if (obj.isMesh && obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach(mat => {
+              if (mat && mat.color) {
+                const { r, g, b } = mat.color;
+                if (r > 0.65 && g > 0.75 && b > 0.85 && (Math.abs(obj.position.z) > 5 || (obj.scale && obj.scale.x > 50))) {
+                  obj.visible = false;
+                }
+              }
+            });
+          }
+        });
       }
       if (splineViewer && splineViewer.shadowRoot) {
         const cv = splineViewer.shadowRoot.querySelector('canvas');
@@ -2146,7 +2176,7 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
       }
     } catch(e) {}
   }
-  setInterval(clearSplineBg, 150);
+  setInterval(clearSplineBg, 100);
 
   function renderOrbLoop() {
     requestAnimationFrame(renderOrbLoop);
