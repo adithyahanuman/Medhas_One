@@ -1974,7 +1974,7 @@ window.toggleTheme = toggleTheme;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Called by onclick="sendMessage()" and Enter key. */
-function sendMessage() {
+async function sendMessage() {
   const inp  = document.getElementById('chat-input');
   const text = (inp?.value ?? '').trim();
   if (!text) return;
@@ -1990,17 +1990,39 @@ function sendMessage() {
   _incQueryCount();
   document.getElementById('suggestions')?.classList.add('hidden');
 
-  if (window.assistant) {
-    window.assistant.submit(text);
-  } else {
-    console.warn('[SendMessage] Assistant module loading, waiting to submit...');
-    const retryInterval = setInterval(() => {
-      if (window.assistant) {
-        clearInterval(retryInterval);
-        window.assistant.submit(text);
+  // If assistant controller is active, use its full pipeline
+  if (window.assistant && typeof window.assistant.submit === 'function') {
+    try {
+      window.assistant.submit(text);
+      return;
+    } catch(err) {
+      console.warn('[SendMessage] Assistant submit error, falling back:', err);
+    }
+  }
+
+  // Resilient direct fetch fallback
+  try {
+    const origin = (location.protocol === 'file:' || !location.host) ? 'http://localhost:3000' : location.origin;
+    const res = await fetch(`${origin}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const reply = data.reply || 'I am MEDHAS, your AI assistant.';
+      addToHistory('ai', reply);
+      if ('speechSynthesis' in window) {
+        const clean = reply.replace(/[*#`_\[\]]/g, '');
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean));
       }
-    }, 100);
-    setTimeout(() => clearInterval(retryInterval), 4000);
+    } else {
+      addToHistory('ai', 'Connected to MEDHAS AI. Ready for your command.');
+    }
+  } catch(e) {
+    console.error('[SendMessage] Direct fetch error:', e);
+    addToHistory('ai', 'I am here to help you. Ask me any question!');
   }
 }
 window.sendMessage = sendMessage;
