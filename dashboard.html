@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -973,12 +973,18 @@
       color: #fff;
     }
     /* 3D Orb Theme Palettes */
+    #ai-orb-3d-container {
+      transition: filter 0.5s ease, mix-blend-mode 0.5s ease;
+    }
+    html[data-theme="dark"] #ai-orb-3d-container,
+    html:not([data-theme="light"]) #ai-orb-3d-container,
     html[data-theme="dark"] #ai-orb-3d-container spline-viewer,
     html:not([data-theme="light"]) #ai-orb-3d-container spline-viewer {
       filter: invert(0.92) hue-rotate(185deg) contrast(1.25) brightness(0.85) !important;
       mix-blend-mode: screen !important;
       background: transparent !important;
     }
+    html[data-theme="light"] #ai-orb-3d-container,
     html[data-theme="light"] #ai-orb-3d-container spline-viewer {
       filter: brightness(1.02) contrast(1.05) !important;
       mix-blend-mode: normal !important;
@@ -1663,6 +1669,30 @@ setTimeout(()=>{ document.querySelectorAll('.float-card').forEach(c=>c.classList
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── Theme Toggle ─────────────────────────────────────────────────────────────
+window.applyThemeTo3D = function(themeName) {
+  const container = document.getElementById('ai-orb-3d-container');
+  const splineViewer = document.getElementById('spline-orb-viewer');
+  if (themeName === 'dark') {
+    if (container) {
+      container.style.filter = 'invert(0.92) hue-rotate(185deg) contrast(1.25) brightness(0.85)';
+      container.style.mixBlendMode = 'screen';
+    }
+    if (splineViewer) {
+      splineViewer.style.filter = 'invert(0.92) hue-rotate(185deg) contrast(1.25) brightness(0.85)';
+      splineViewer.style.mixBlendMode = 'screen';
+    }
+  } else {
+    if (container) {
+      container.style.filter = 'none';
+      container.style.mixBlendMode = 'normal';
+    }
+    if (splineViewer) {
+      splineViewer.style.filter = 'brightness(1.02) contrast(1.05)';
+      splineViewer.style.mixBlendMode = 'normal';
+    }
+  }
+};
+
 window.toggleTheme = function() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme') || (document.body ? document.body.getAttribute('data-theme') : 'dark');
@@ -1671,6 +1701,9 @@ window.toggleTheme = function() {
   if (document.body) document.body.setAttribute('data-theme', next);
   localStorage.setItem('medhas-theme', next);
   localStorage.setItem('medhas_theme', next);
+  
+  window.applyThemeTo3D(next);
+
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
   const state = window.__currentState || 'idle';
@@ -1683,8 +1716,13 @@ window.toggleTheme = function() {
   const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   if (document.body) document.body.setAttribute('data-theme', saved);
+  window.applyThemeTo3D(saved);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  setInterval(() => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    window.applyThemeTo3D(cur);
+  }, 200);
 })();
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
