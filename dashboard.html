@@ -970,8 +970,8 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- 3D Human/Design scene — Three.js + SplineLoader (scene_human.splinecode) -->
-<div id="human-3d-container" style="position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden;"></div>
+<!-- 3D AI Orb Scene — Three.js + SplineLoader (scene_ai_orb.splinecode from scene (2).splinecode) -->
+<div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden;"></div>
 
 <!-- Orb -->
 <div id="orb-container"></div>
@@ -1227,214 +1227,18 @@
 })();
 
 // ════════════════════════════════════════════
-// THREE.JS ORB
+// GLOBAL STATE BINDINGS FOR AI ORB
 // ════════════════════════════════════════════
 (function(){
-  const container = document.getElementById('orb-container');
-  const W=()=>container.clientWidth, H=()=>container.clientHeight;
-  const scene=new THREE.Scene();
-  const camera=new THREE.PerspectiveCamera(55,W()/H(),0.1,500);
-  camera.position.set(0,0,5.5);
-  camera.lookAt(0,0,0);
-  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-  renderer.setSize(W(),H()); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.42;
-  renderer.setClearColor(0x000000,0);
-  container.appendChild(renderer.domElement);
-
-  const composer=new THREE.EffectComposer(renderer);
-  composer.addPass(new THREE.RenderPass(scene,camera));
-  const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(W(),H()),0.65,0.28,0.38);
-  composer.addPass(bloom);
-
-  const chromaShader={
-    uniforms:{tDiffuse:{value:null},uTime:{value:0},uIntensity:{value:0.003}},
-    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader:`uniform sampler2D tDiffuse;uniform float uTime;uniform float uIntensity;varying vec2 vUv;
-    void main(){
-      vec2 dir=vUv-vec2(0.5);float d=length(dir);float offset=uIntensity*d;
-      float flicker=1.0+0.02*sin(uTime*30.0)*sin(uTime*7.3);
-      vec4 cr=texture2D(tDiffuse,vUv+dir*offset);
-      vec4 cg=texture2D(tDiffuse,vUv);
-      vec4 cb=texture2D(tDiffuse,vUv-dir*offset*0.5);
-      gl_FragColor=vec4(cr.r*0.55,cg.g*1.05,cb.b*1.3,1.0)*flicker;
-      gl_FragColor.rgb=mix(gl_FragColor.rgb,gl_FragColor.rgb*vec3(0.5,0.85,1.35),0.25);
-    }`,
+  window.setOrbState = function(state, amp = 0) {
+    window.__currentState = state;
+    window._aiSpeakAmplitude = amp;
+    if (state === 'speaking') {
+      window._aiSpeaking = true;
+    } else if (state === 'idle') {
+      window._aiSpeaking = false;
+    }
   };
-  const chromaPass=new THREE.ShaderPass(chromaShader);
-  composer.addPass(chromaPass);
-
-  const C_BRIGHT=0x00f0ff, C_MID=0x38bdf8, C_DIM=0x0284c7, C_FAINT=0x1d4ed8, C_HOT=0x60a5fa;
-  const allLineMaterials = [];
-  function lineMat(color, opacity=1){
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    const mat = new THREE.LineBasicMaterial({
-      color: isLight ? (color === C_FAINT ? 0x0284c7 : 0x1d4ed8) : color,
-      transparent: true,
-      opacity: isLight ? Math.min(1.0, opacity * 2.5) : opacity,
-      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    allLineMaterials.push({ mat, baseColor: color, baseOpacity: opacity });
-    return mat;
-  }
-  function latRing(radius,lat,segs=120){const r=radius*Math.cos(lat),y=radius*Math.sin(lat),pts=[];for(let i=0;i<=segs;i++){const a=(i/segs)*Math.PI*2;pts.push(new THREE.Vector3(r*Math.cos(a),y,r*Math.sin(a)));}return new THREE.BufferGeometry().setFromPoints(pts);}
-  function meridian(radius,lon,segs=120){const pts=[];for(let i=0;i<=segs;i++){const lat=(i/segs)*Math.PI-Math.PI/2;pts.push(new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),radius*Math.cos(lat)*Math.sin(lon)));}return new THREE.BufferGeometry().setFromPoints(pts);}
-
-  const orbGroup=new THREE.Group(); scene.add(orbGroup);
-
-  // ── 3D CYBERNETIC HEAD CREATOR ─────────────────────────────────────────────
-  const headGroup = new THREE.Group();
-  orbGroup.add(headGroup);
-
-  function attachHeadGeo(headGeo) {
-    headGeo.center();
-    headGeo.computeVertexNormals();
-
-    const wireGeo = new THREE.WireframeGeometry(headGeo);
-    const headWire = new THREE.LineSegments(wireGeo, lineMat(C_MID, 0.7));
-    headWire.name = 'headWire';
-
-    const coreMat = new THREE.MeshBasicMaterial({ color: C_DIM, transparent: true, opacity: 0.1, depthWrite: false });
-    const headCore = new THREE.Mesh(headGeo, coreMat);
-    headCore.name = 'headCore';
-
-    headGroup.add(headWire);
-    headGroup.add(headCore);
-  }
-
-  // Fallback: Procedural Low-Poly Cyber Head
-  function createProcHeadGeo() {
-    const geo = new THREE.SphereGeometry(1.3, 20, 16);
-    const pos = geo.attributes.position;
-    for(let i=0; i<pos.count; i++) {
-      let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-      if (y < -0.3) { x *= 0.65; z *= 0.6; }
-      else if (y < 0.2) { x *= 0.85; z *= 0.9; }
-      if (z > 0.3) { z += Math.max(0, (y + 0.5) * 0.25); }
-      pos.setXYZ(i, x, y, z);
-    }
-    geo.computeVertexNormals();
-    return geo;
-  }
-
-  attachHeadGeo(createProcHeadGeo());
-
-  // Asynchronously load detailed Lee Perry-Smith 3D Head Scan GLTF
-  if (typeof THREE.GLTFLoader !== 'undefined') {
-    const loader = new THREE.GLTFLoader();
-    loader.load('head.glb', (gltf) => {
-      let loadedGeo = null;
-      gltf.scene.traverse((child) => {
-        if (child.isMesh && child.geometry && !loadedGeo) {
-          loadedGeo = child.geometry.clone();
-        }
-      });
-      if (loadedGeo) {
-        while(headGroup.children.length > 0) headGroup.remove(headGroup.children[0]);
-        loadedGeo.computeBoundingBox();
-        const bbox = loadedGeo.boundingBox;
-        const sizeY = bbox.max.y - bbox.min.y || 1;
-        const scaleFactor = 2.5 / sizeY;
-        loadedGeo.scale(scaleFactor, scaleFactor, scaleFactor);
-        attachHeadGeo(loadedGeo);
-      }
-    }, undefined, (err) => {
-      console.warn('[3D Head] Using procedural head mesh:', err.message);
-    });
-  }
-
-  // Orbiting Cyber HUD Halos & Data Nodes around Head
-  const haloGroup = new THREE.Group();
-  haloGroup.add(new THREE.Line(latRing(1.65, 0.35, 80), lineMat(C_BRIGHT, 0.4)));
-  haloGroup.add(new THREE.Line(latRing(1.8, 0, 90), lineMat(C_MID, 0.3)));
-  haloGroup.add(new THREE.Line(latRing(1.35, -0.55, 70), lineMat(C_BRIGHT, 0.35)));
-  orbGroup.add(haloGroup);
-
-  // Dust
-  const dustGeo=new THREE.BufferGeometry();
-  const dv=new Float32Array(6000);
-  for(let i=0;i<2000;i++){const phi=Math.acos(2*Math.random()-1),theta=Math.random()*Math.PI*2,r=2.0+Math.random()*1.5;dv[i*3]=r*Math.sin(phi)*Math.cos(theta);dv[i*3+1]=r*Math.cos(phi);dv[i*3+2]=r*Math.sin(phi)*Math.sin(theta);}
-  dustGeo.setAttribute('position',new THREE.BufferAttribute(dv,3));
-  const dustPoints=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:C_MID,size:0.012,transparent:true,opacity:0.3,blending:THREE.AdditiveBlending,depthWrite:false}));
-  orbGroup.add(dustPoints);
-
-  // Scan rings
-  const scanRing1=new THREE.Line(latRing(2.0,0,80),lineMat(C_BRIGHT,0.2));
-  const scanRing2=new THREE.Line(latRing(1.2,0,80),lineMat(C_MID,0.15));
-  orbGroup.add(scanRing1,scanRing2);
-
-  // State
-  let _state='idle', _amp=0, _ampSmooth=0, t=0;
-  window.setOrbState=(state,amp=0)=>{_state=state;_amp=amp;};
-
-  function animate(){
-    requestAnimationFrame(animate); t+=0.016;
-    headGroup.rotation.y += 0.003;
-    headGroup.rotation.x = Math.sin(t * 0.7) * 0.04;
-    haloGroup.rotation.y -= 0.005;
-    haloGroup.rotation.z = Math.sin(t * 0.5) * 0.08;
-
-    const sy1=Math.sin(t*0.4)*2.0; scanRing1.position.y=sy1;
-    const ss1=Math.sqrt(Math.max(0,4.0-sy1*sy1))/2.0; scanRing1.scale.set(ss1,ss1,1); scanRing1.material.opacity=0.2*ss1;
-    const sy2=Math.sin(t*0.6+2)*1.2; scanRing2.position.y=sy2;
-    const ss2=Math.sqrt(Math.max(0,1.44-sy2*sy2))/1.2; scanRing2.scale.set(ss2,ss2,1); scanRing2.material.opacity=0.15*ss2;
-
-    dustPoints.rotation.y+=0.0002;
-    _ampSmooth=_ampSmooth*0.75+_amp*0.25;
-
-    const speakPulse = _ampSmooth * 0.4;
-    headGroup.scale.setScalar(1.0 + speakPulse);
-    haloGroup.scale.setScalar(1.0 + speakPulse * 0.6);
-
-    switch(_state){
-      case 'listening':
-        bloom.strength=0.9+Math.sin(t*2.5)*0.15; chromaPass.uniforms.uIntensity.value=0.004;
-        orbGroup.scale.setScalar(1+Math.sin(t*2)*0.015);
-        scanRing1.material.opacity=0.5+Math.sin(t*3)*0.2; scanRing2.material.opacity=0.35+Math.sin(t*4+1)*0.12;
-        break;
-      case 'thinking':
-        bloom.strength=0.8+Math.sin(t*1.8)*0.2; chromaPass.uniforms.uIntensity.value=0.007+Math.sin(t*6)*0.004;
-        orbGroup.scale.setScalar(1+Math.sin(t*9)*0.007+Math.sin(t*14)*0.004);
-        break;
-      case 'speaking':{
-        const spk=_ampSmooth;
-        const wob=Math.sin(t*4.5)*0.09*spk+Math.sin(t*7.2)*0.05*spk+Math.sin(t*11)*0.03*spk+Math.sin(t*3.1)*0.04*spk;
-        orbGroup.scale.setScalar(1+wob+spk*0.07);
-        bloom.strength=0.9+spk*0.8+Math.sin(t*3)*0.1; chromaPass.uniforms.uIntensity.value=0.004+spk*0.01;
-        coreSphere.scale.multiplyScalar(1+spk*0.65); glowSphere.scale.multiplyScalar(1+spk*0.45);
-        icoWireMat.opacity=Math.min(1,icoWireMat.opacity+spk*0.4);
-        scanRing1.material.opacity=0.3+spk*0.6+Math.sin(t*6)*0.15; scanRing2.material.opacity=0.25+spk*0.45;
-        break;}
-      default:
-        bloom.strength=0.6+Math.sin(t*0.8)*0.08; chromaPass.uniforms.uIntensity.value=0.003;
-        orbGroup.scale.setScalar(1+Math.sin(t*0.9)*0.008);
-    }
-    chromaPass.uniforms.uTime.value=t;
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    allLineMaterials.forEach(({ mat, baseColor, baseOpacity }) => {
-      if (isLight) {
-        mat.color.setHex(baseColor === C_FAINT ? 0x38bdf8 : (baseColor === C_BRIGHT ? 0x00d2ff : 0x0284c7));
-        mat.opacity = Math.min(0.9, baseOpacity * 2.0);
-        mat.blending = THREE.NormalBlending;
-      } else {
-        mat.color.setHex(baseColor);
-        mat.opacity = baseOpacity;
-        mat.blending = THREE.AdditiveBlending;
-      }
-      mat.needsUpdate = true;
-    });
-
-    if (isLight) {
-      scene.background = new THREE.Color(0xf8fafc);
-      renderer.render(scene, camera);
-    } else {
-      scene.background = null;
-      composer.render();
-    }
-  }
-  animate();
-  window.addEventListener('resize',()=>{camera.aspect=W()/H();camera.updateProjectionMatrix();renderer.setSize(W(),H());composer.setSize(W(),H());});
 })();
 
 // ════════════════════════════════════════════
@@ -2235,18 +2039,18 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     THREE.JS + SPLINELOADER — Reactive 3D Human Scene
-     Vibrates/pulses in sync with AI speech state
+     THREE.JS + SPLINELOADER — Reactive 3D AI Orb Scene (scene (2).splinecode)
+     Vibrates & pulses dynamically based on AI speech / answer state
 ════════════════════════════════════════════════════════════════════════ -->
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import SplineLoader from '@splinetool/loader';
 
-const container = document.getElementById('human-3d-container');
-if (!container) throw new Error('human-3d-container not found');
+const container = document.getElementById('ai-orb-3d-container');
+if (!container) throw new Error('ai-orb-3d-container not found');
 
-// ── Camera (Orthographic, matching user spec) ─────────────────────────────
+// ── Camera (Orthographic, matching exact user spec) ─────────────────────────
 const camera = new THREE.OrthographicCamera(
   window.innerWidth / -2, window.innerWidth / 2,
   window.innerHeight / 2, window.innerHeight / -2,
@@ -2275,25 +2079,23 @@ controls.dampingFactor = 0.125;
 controls.enableZoom = false;
 controls.enablePan = false;
 
-// ── Load Spline Scene ─────────────────────────────────────────────────────
+// ── Load Spline AI Orb Scene (scene (2).splinecode) ────────────────────────
 let splineScene = null;
 let splineRoot = null;
 const loader = new SplineLoader();
 
-// Use local file first, fall back to CDN
 const sceneUrl = location.protocol === 'file:'
-  ? 'http://localhost:3000/scene_human.splinecode'
+  ? 'http://localhost:3000/scene_ai_orb.splinecode'
   : (location.hostname.endsWith('github.io')
-      ? 'https://adithyahanuman.github.io/Medhas_One/scene_human.splinecode'
-      : location.origin + '/scene_human.splinecode');
+      ? 'https://adithyahanuman.github.io/Medhas_One/scene_ai_orb.splinecode'
+      : location.origin + '/scene_ai_orb.splinecode');
 
 loader.load(sceneUrl, (loaded) => {
   splineScene = loaded;
-  // Wrap in a pivot for reactive transforms
   splineRoot = new THREE.Group();
   splineRoot.add(splineScene);
   scene.add(splineRoot);
-  console.log('[MEDHAS] Spline scene loaded:', sceneUrl);
+  console.log('[MEDHAS] 3D AI Orb loaded successfully from:', sceneUrl);
 });
 
 // ── Theme-aware background ────────────────────────────────────────────────
@@ -2303,7 +2105,7 @@ function getThemeBg() {
 }
 scene.background = getThemeBg();
 
-// ── Reactive Animation State ──────────────────────────────────────────────
+// ── Reactive Animation & Vibration State ─────────────────────────────────
 let _smoothAmp = 0;      // smoothed vibration amplitude
 let _baseRotY = 0;       // gentle base rotation
 let _breathPhase = 0;    // breathing cycle
@@ -2312,19 +2114,19 @@ let _vibPhase = 0;       // high-freq vibration phase
 function getTargetAmp() {
   const state = window.__currentState || 'idle';
   const spkAmp = window._aiSpeakAmplitude || 0;
-  if (window._aiSpeaking) return spkAmp || 0.045;
-  if (state === 'speaking')  return 0.04;
-  if (state === 'thinking')  return 0.012;
-  if (state === 'listening') return 0.018;
-  return 0.004; // idle breathing
+  if (window._aiSpeaking) return Math.max(spkAmp, 0.055);
+  if (state === 'speaking')  return Math.max(spkAmp, 0.05);
+  if (state === 'thinking')  return 0.02;
+  if (state === 'listening') return 0.025;
+  return 0.005; // idle breathing
 }
 
 function getVibFreq() {
   const state = window.__currentState || 'idle';
-  if (window._aiSpeaking || state === 'speaking') return 18;  // fast shiver
-  if (state === 'thinking')  return 6;
-  if (state === 'listening') return 4;
-  return 1.2; // slow breath
+  if (window._aiSpeaking || state === 'speaking') return 24;  // fast energetic vibration when answering!
+  if (state === 'thinking')  return 10;
+  if (state === 'listening') return 6;
+  return 1.5; // slow breath
 }
 
 // ── Resize Handler ────────────────────────────────────────────────────────
@@ -2343,33 +2145,38 @@ renderer.setAnimationLoop((time) => {
 
   // Smooth amplitude toward target
   const target = getTargetAmp();
-  _smoothAmp += (target - _smoothAmp) * 0.08;
+  _smoothAmp += (target - _smoothAmp) * 0.1;
 
   // Update phases
   const freq = getVibFreq();
   _vibPhase   += 0.016 * freq;
   _breathPhase += 0.008;
-  _baseRotY   += 0.002; // constant slow spin
+  _baseRotY   += 0.003; // continuous smooth rotation
 
   if (splineRoot) {
-    // Vibration: rapid sine at higher amplitude when speaking
-    const vibX = Math.sin(_vibPhase)       * _smoothAmp;
-    const vibZ = Math.cos(_vibPhase * 1.3) * _smoothAmp * 0.6;
+    // Vibration: position shiver + rotation oscillation when AI answers / speaks
+    const vibX = Math.sin(_vibPhase * 1.1) * _smoothAmp * 15;
+    const vibY = Math.cos(_vibPhase * 0.9) * _smoothAmp * 12;
+    const vibZ = Math.sin(_vibPhase * 1.4) * _smoothAmp * 10;
 
-    // Breathing: very slow subtle scale pulse
-    const breathScale = 1.0 + Math.sin(_breathPhase) * (_smoothAmp * 0.5 + 0.003);
+    const rotVibX = Math.sin(_vibPhase * 1.3) * _smoothAmp * 0.5;
+    const rotVibZ = Math.cos(_vibPhase * 1.7) * _smoothAmp * 0.5;
+
+    // Scale pulsation driven by speech amplitude
+    const pulseScale = 1.0 + Math.sin(_breathPhase) * 0.005 + _smoothAmp * 0.4;
 
     // Apply transforms
-    splineRoot.rotation.x = vibX;
-    splineRoot.rotation.z = vibZ;
-    splineRoot.rotation.y = Math.sin(_baseRotY * 0.4) * 0.25; // gentle sway
-    splineRoot.scale.setScalar(breathScale);
+    splineRoot.position.set(vibX, vibY, vibZ);
+    splineRoot.rotation.x = rotVibX;
+    splineRoot.rotation.z = rotVibZ;
+    splineRoot.rotation.y = _baseRotY + Math.sin(_breathPhase * 0.5) * 0.15;
+    splineRoot.scale.setScalar(pulseScale);
 
-    // Color tint on scene background when speaking
-    if (window._aiSpeaking) {
+    // Dynamic background glow pulse when AI speaks
+    if (window._aiSpeaking || window.__currentState === 'speaking') {
       const pulse = (Math.sin(_vibPhase * 0.5) + 1) * 0.5;
       scene.background = document.documentElement.getAttribute('data-theme') === 'light'
-        ? new THREE.Color(0.94 + pulse * 0.02, 0.96, 1.0)
+        ? new THREE.Color(0.92 + pulse * 0.04, 0.95, 1.0)
         : null;
     } else {
       scene.background = getThemeBg();
@@ -2379,7 +2186,7 @@ renderer.setAnimationLoop((time) => {
   renderer.render(scene, camera);
 });
 
-console.log('[MEDHAS] Three.js Spline scene initialized. URL:', sceneUrl);
+console.log('[MEDHAS] 3D AI Orb scene initialized.');
 </script>
 </body>
 </html>
