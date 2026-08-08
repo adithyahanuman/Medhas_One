@@ -2304,7 +2304,7 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
           const logo = splineViewer.shadowRoot.querySelector('#logo') || 
                        splineViewer.shadowRoot.querySelector('a[href*="spline"]') ||
                        splineViewer.shadowRoot.querySelector('.watermark') ||
-                       splineViewer.shadowRoot.querySelector('a');
+                       splineViewer.shadowRoot.querySelector('#logo-link');
           if (logo) {
             logo.style.display = 'none';
             logo.style.opacity = '0';
