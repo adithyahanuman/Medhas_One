@@ -371,23 +371,146 @@
     .ch-msg.ai .ch-sender   { color: #7fe8ff; }
     .ch-time { font-size: 8.5px; color: rgba(180,190,215,0.35); margin-top: 5px; text-align: right; font-family: 'JetBrains Mono', monospace; }
 
-    /* Key Modal CSS */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 300;
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    /* ═══════════════════════════════════════
+       LIGHT THEME OVERRIDES (data-theme="light")
+    ═══════════════════════════════════════ */
+    html[data-theme="light"] body {
+      background: #f1f5f9;
+      color: #0f172a;
     }
-    .modal-overlay.open { opacity: 1; pointer-events: auto; }
-    .modal-card {
-      width: min(440px, 90vw); background: rgba(8,13,26,0.95);
-      border: 1px solid rgba(127,232,255,0.3); border-radius: 16px;
-      padding: 22px; box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+    html[data-theme="light"] #state-overlay {
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(255,255,255,0) 40%, rgba(241,245,249,0.85) 100%);
     }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .modal-header h3 { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7fe8ff; letter-spacing: 1px; }
-    .modal-close { background: none; border: none; color: rgba(200,210,230,0.5); font-size: 14px; cursor: pointer; }
-    .modal-close:hover { color: #ff6b6b; }
+    html[data-theme="light"] #scanlines {
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(108,99,255,0.02) 3px, rgba(108,99,255,0.02) 4px);
+    }
+    html[data-theme="light"] #grid-overlay {
+      background-image: linear-gradient(rgba(108,99,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(108,99,255,0.08) 1px, transparent 1px);
+    }
+    html[data-theme="light"] #topbar {
+      background: rgba(255, 255, 255, 0.85);
+      border-color: rgba(108, 99, 255, 0.25);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.08);
+    }
+    html[data-theme="light"] .tb-clock,
+    html[data-theme="light"] .tb-state {
+      color: #334155;
+    }
+    html[data-theme="light"] .tb-nav-btn {
+      color: #64748b;
+    }
+    html[data-theme="light"] .tb-nav-btn:hover {
+      color: #1e293b;
+      background: rgba(108,99,255,0.1);
+    }
+    html[data-theme="light"] .tb-nav-btn.active {
+      color: #6d28d9;
+      background: rgba(108,99,255,0.15);
+    }
+    html[data-theme="light"] .tb-icon-btn {
+      background: rgba(108,99,255,0.1);
+      border-color: rgba(108,99,255,0.25);
+      color: #4c1d95;
+    }
+    html[data-theme="light"] .tb-exit {
+      color: #475569;
+      border-color: rgba(108,99,255,0.2);
+    }
+    html[data-theme="light"] #left-panel .lp-inner,
+    html[data-theme="light"] #right-panel .rp-inner {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(108, 99, 255, 0.2);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    html[data-theme="light"] .lp-tab,
+    html[data-theme="light"] .rp-tab {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(108, 99, 255, 0.35);
+      color: #6d28d9;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+    }
+    html[data-theme="light"] .sess-title {
+      color: #1e293b;
+    }
+    html[data-theme="light"] .sess-time {
+      color: #64748b;
+    }
+    html[data-theme="light"] .sess-card:hover {
+      background: rgba(108,99,255,0.08);
+    }
+    html[data-theme="light"] .sess-card.active {
+      background: rgba(108,99,255,0.16);
+    }
+    html[data-theme="light"] .rp-heading {
+      color: #6d28d9;
+    }
+    html[data-theme="light"] .rp-close-btn {
+      background: rgba(108,99,255,0.1);
+      color: #475569;
+    }
+    html[data-theme="light"] .ch-msg.user {
+      background: rgba(108, 99, 255, 0.12);
+      border-color: rgba(108, 99, 255, 0.3);
+      color: #3b0764;
+    }
+    html[data-theme="light"] .ch-msg.ai {
+      background: rgba(14, 165, 233, 0.1);
+      border-color: rgba(14, 165, 233, 0.3);
+      color: #0369a1;
+    }
+    html[data-theme="light"] .ch-msg.user .ch-sender { color: #6d28d9; }
+    html[data-theme="light"] .ch-msg.ai .ch-sender { color: #0284c7; }
+    html[data-theme="light"] .ch-time { color: #64748b; }
+    html[data-theme="light"] .ch-empty { color: #64748b; }
+    html[data-theme="light"] #ai-bubble {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(14, 165, 233, 0.3);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    }
+    html[data-theme="light"] #bubble-text {
+      color: #0f172a;
+    }
+    html[data-theme="light"] .bubble-name {
+      color: #0284c7;
+    }
+    html[data-theme="light"] .ai-search-container {
+      background: rgba(255, 255, 255, 0.88);
+      border-color: rgba(108, 99, 255, 0.25);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    html[data-theme="light"] #chat-input {
+      color: #0f172a;
+    }
+    html[data-theme="light"] #chat-input::placeholder {
+      color: #94a3b8;
+    }
+    html[data-theme="light"] .float-card {
+      background: rgba(255, 255, 255, 0.8);
+      border-color: rgba(108, 99, 255, 0.2);
+    }
+    html[data-theme="light"] .fc-val {
+      color: #0284c7;
+    }
+    html[data-theme="light"] .fc-label,
+    html[data-theme="light"] .fc-sub {
+      color: #64748b;
+    }
+    html[data-theme="light"] .sug-chip {
+      background: rgba(255, 255, 255, 0.85);
+      border-color: rgba(108, 99, 255, 0.2);
+      color: #334155;
+    }
+    html[data-theme="light"] .sug-chip:hover {
+      background: rgba(108, 99, 255, 0.15);
+      color: #6d28d9;
+    }
+    html[data-theme="light"] #toast {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(108, 99, 255, 0.3);
+      color: #0f172a;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
 
 
     /* Quick action chips */
@@ -787,7 +910,7 @@
   <div class="tb-actions">
     <div class="tb-icon-btn" title="Previous Chats (Left Panel)" onclick="togglePanel('left')">📜</div>
     <div class="tb-icon-btn" title="Chat Messages Log (Right Drawer)" onclick="togglePanel('right')">💬</div>
-    <div class="tb-icon-btn" title="API Key Settings" onclick="openKeyModal()">⚙</div>
+    <div class="tb-icon-btn" id="theme-toggle-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">🌙</div>
   </div>
   <div class="tb-sep"></div>
   <a href="signin.html" class="tb-exit" onclick="window.exitApp?.(event)">← Exit</a>
@@ -1670,36 +1793,30 @@ window.onSessionDelete = async (sessionId) => {
   }
 };
 
-// ── Key Settings Modal Controls ────────────────────────────────────────────────
-window.openKeyModal = () => {
-  const modal = document.getElementById('key-modal');
-  const input = document.getElementById('api-key-input');
-  if (input) input.value = localStorage.getItem('medhas_gemini_api_key') || '';
-  if (modal) modal.classList.add('open');
+// ── Light / Dark Theme Toggle Controls ──────────────────────────────────────────
+window.toggleTheme = () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('medhas_theme', next);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+  showToast(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode activated`, 1800);
 };
-window.closeKeyModal = (e) => {
-  if (e && e.target !== document.getElementById('key-modal')) return;
-  document.getElementById('key-modal')?.classList.remove('open');
-};
-window.saveApiKey = () => {
-  const input = document.getElementById('api-key-input');
-  const val = input?.value?.trim() ?? '';
-  if (val) {
-    localStorage.setItem('medhas_gemini_api_key', val);
-    showToast('Gemini API Key saved!', 2000);
-  } else {
-    localStorage.removeItem('medhas_gemini_api_key');
-    showToast('API Key cleared', 2000);
-  }
-  document.getElementById('key-modal')?.classList.remove('open');
-};
-window.clearApiKey = () => {
-  localStorage.removeItem('medhas_gemini_api_key');
-  const input = document.getElementById('api-key-input');
-  if (input) input.value = '';
-  showToast('API Key cleared', 2000);
-  document.getElementById('key-modal')?.classList.remove('open');
-};
+
+// Initialize saved theme
+(function initTheme() {
+  const saved = localStorage.getItem('medhas_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  });
+})();
+</script>
+</body>
+</html>
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // OVERRIDE GLOBAL ENTRY POINTS
@@ -1865,26 +1982,7 @@ const _originalToast = window.showToast;  // keep reference for reuse
 if (!tts.isSupported) {
   showToast('⚠ Text-to-speech is not supported in this browser', 5000);
 }
-<!-- API Key Settings Modal -->
-<div id="key-modal" class="modal-overlay" onclick="closeKeyModal(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3>⚙ Gemini API Key Settings</h3>
-      <button class="modal-close" onclick="closeKeyModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:12px; color:rgba(200,210,230,0.75); margin-bottom:14px; line-height:1.5;">
-        Required for AI responses on <strong>GitHub Pages</strong> or when local server proxy is unreachable.
-      </p>
-      <label style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7fe8ff; text-transform:uppercase; display:block; margin-bottom:6px;">Gemini API Key</label>
-      <input type="password" id="api-key-input" placeholder="AIzaSy... or AQ..." style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(5,8,22,0.8); border:1px solid rgba(108,99,255,0.3); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; margin-bottom:14px;" />
-      <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button onclick="clearApiKey()" style="padding:8px 14px; border-radius:8px; background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); color:#ff6b6b; font-size:11px; cursor:pointer;">Clear Key</button>
-        <button onclick="saveApiKey()" style="padding:8px 18px; border-radius:8px; background:rgba(108,99,255,0.3); border:1px solid rgba(108,99,255,0.6); color:#c4b5fd; font-size:11px; font-weight:600; cursor:pointer;">Save Key</button>
-      </div>
-    </div>
-  </div>
-</div>
+</script>
 </body>
 </html>
 
