@@ -50,16 +50,21 @@ export class TTSEngine {
   #resumeTimer  = null;
   #onQueueEmpty = null; // registered externally for sentence-streaming reset
 
-  // ── Preferred voice names (tried in order) ────────────────────────────────
+  // ── Preferred female voice names (tried in order) ────────────────────────
   static #PREFERRED_VOICES = [
+    'Google UK English Female',
+    'Google US English',
+    'Microsoft Jenny Online (Natural)',
+    'Microsoft Aria Online (Natural)',
+    'Microsoft Zira',
     'Samantha',
     'Karen',
+    'Victoria',
+    'Fiona',
     'Moira',
     'Tessa',
-    'Google UK English Female',
-    'Microsoft Jenny Online (Natural)',
-    'Microsoft Zira',
-    'Microsoft Aria Online (Natural)',
+    'Zira',
+    'Female',
   ];
 
   constructor() {
@@ -141,8 +146,8 @@ export class TTSEngine {
   #speakOne(text, { onWord, onAmplitude, onEnd, onError }, onFinished) {
     const utter = new SpeechSynthesisUtterance(text);
 
-    utter.rate   = 1.0;
-    utter.pitch  = 1.05;
+    utter.rate   = 1.25; // Faster, natural reading speed
+    utter.pitch  = 1.1;  // Clear female pitch accent
     utter.volume = 1.0;
 
     const voice = this.#pickVoice();

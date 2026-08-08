@@ -970,8 +970,10 @@
 <div id="scanlines"></div>
 <div id="grid-overlay"></div>
 
-<!-- 3D AI Orb Scene — Three.js + SplineLoader (scene_ai_orb.splinecode from scene (2).splinecode) -->
-<div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden;"></div>
+<!-- 3D AI Orb Scene — Spline Viewer (scene_ai_orb.splinecode from scene (2).splinecode) -->
+<div id="ai-orb-3d-container" style="position:fixed; inset:0; z-index:10; pointer-events:none; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+  <spline-viewer id="spline-orb-viewer" url="./scene_ai_orb.splinecode" loading-anim-type="none" style="width:100%; height:100%; display:block; background:transparent !important;"></spline-viewer>
+</div>
 
 <!-- Orb -->
 <div id="orb-container"></div>
@@ -1153,9 +1155,10 @@
       </div>
       
       <div class="ai-tools-right">
-        <!-- Stop AI speaking / generating button -->
-        <button class="ai-tool-btn stop-btn" id="stop-btn" type="button" onclick="event.stopPropagation(); window.stopAI?.()" title="Stop AI response & speech" style="display:none; color:#ef4444; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); border-radius:8px; width:32px; height:32px; align-items:center; justify-content:center; cursor:pointer; margin-right:4px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        <!-- Stop AI speaking / generating button (ALWAYS visible & fast terminate) -->
+        <button class="ai-tool-btn stop-btn active" id="stop-btn" type="button" onclick="event.stopPropagation(); window.stopAI?.()" title="Terminate AI response & speech immediately" style="display:inline-flex; color:#ef4444; background:rgba(239,68,68,0.18); border:1px solid rgba(239,68,68,0.45); border-radius:8px; padding:0 10px; height:32px; align-items:center; justify-content:center; gap:5px; cursor:pointer; font-weight:700; font-size:11px; font-family:'JetBrains Mono',monospace; margin-right:4px; transition:all 0.2s;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          <span>STOP</span>
         </button>
         <!-- Voice assistant microphone button -->
         <button class="ai-tool-btn" id="mic-btn" type="button" onclick="event.stopPropagation(); window.toggleMic?.()" title="Voice input">
@@ -1489,6 +1492,7 @@ window.toggleTheme = function() {
   const current = html.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
+  if (document.body) document.body.setAttribute('data-theme', next);
   localStorage.setItem('medhas-theme', next);
   localStorage.setItem('medhas_theme', next);
   const btn = document.getElementById('theme-toggle-btn');
@@ -1500,6 +1504,7 @@ window.toggleTheme = function() {
 (function() {
   const saved = localStorage.getItem('medhas-theme') || localStorage.getItem('medhas_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
+  if (document.body) document.body.setAttribute('data-theme', saved);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
 })();
@@ -1627,8 +1632,8 @@ window._deliverReply = function(reply, userText) {
   // Trigger 3D scene speech reaction
   var wordCount = reply.trim().split(/\s+/).length;
   window._aiSpeaking = true;
-  window._aiSpeakAmplitude = Math.min(0.06, 0.02 + wordCount * 0.001);
-  window._aiSpeakDuration = Math.max(2000, wordCount * 180);
+  window._aiSpeakAmplitude = Math.min(0.08, 0.03 + wordCount * 0.001);
+  window._aiSpeakDuration = Math.max(2000, wordCount * 140);
   clearTimeout(window._aiSpeakTimer);
   window._aiSpeakTimer = setTimeout(function() {
     window._aiSpeaking = false;
@@ -1639,7 +1644,16 @@ window._deliverReply = function(reply, userText) {
     var clean = reply.replace(/[*#`_\[\]]/g, '');
     window.speechSynthesis.cancel();
     var utt = new SpeechSynthesisUtterance(clean);
-    utt.onend = function() { window._aiSpeaking = false; };
+    utt.rate = 1.25; // Faster reading speed
+    utt.pitch = 1.1; // Female tone
+    var voices = window.speechSynthesis.getVoices();
+    var femaleVoice = voices.find(function(v) {
+      return v.name.includes('Google UK English Female') || v.name.includes('Samantha') ||
+             v.name.includes('Karen') || v.name.includes('Victoria') ||
+             v.name.includes('Zira') || v.name.includes('Jenny') || v.name.includes('Aria');
+    }) || voices.find(function(v) { return v.lang.startsWith('en'); });
+    if (femaleVoice) utt.voice = femaleVoice;
+    utt.onend = function() { window._aiSpeaking = false; window._aiSpeakAmplitude = 0; };
     window.speechSynthesis.speak(utt);
   }
 };
@@ -1795,11 +1809,16 @@ window.toggleMic = function() {
 // ── Stop AI ───────────────────────────────────────────────────────────────────
 window.stopAI = function() {
   if (window._assistant) window._assistant.interrupt && window._assistant.interrupt();
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  window.hideThinking();
+  if (window.assistant) window.assistant.interrupt && window.assistant.interrupt();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  window._aiSpeaking = false;
+  window._aiSpeakAmplitude = 0;
+  window.hideThinking && window.hideThinking();
   var stopBtn = document.getElementById('stop-btn');
-  if (stopBtn) stopBtn.style.display = 'none';
-  window.showToast('Stopped', 1000);
+  if (stopBtn) stopBtn.classList.remove('active');
+  window.showToast('AI stopped immediately', 1500);
 };
 
 // ── New Chat ──────────────────────────────────────────────────────────────────
@@ -2039,154 +2058,47 @@ if (!tts.isSupported) window.showToast?.('⚠ TTS not supported in this browser'
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     THREE.JS + SPLINELOADER — Reactive 3D AI Orb Scene (scene (2).splinecode)
+     REACTIVE 3D AI ORB ANIMATION & VIBRATION CONTROLLER
      Vibrates & pulses dynamically based on AI speech / answer state
 ════════════════════════════════════════════════════════════════════════ -->
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import SplineLoader from '@splinetool/loader';
+<script>
+(function(){
+  let _smoothAmp = 0;
+  let _vibPhase = 0;
 
-const container = document.getElementById('ai-orb-3d-container');
-if (!container) throw new Error('ai-orb-3d-container not found');
-
-// ── Camera (Orthographic, matching exact user spec) ─────────────────────────
-const camera = new THREE.OrthographicCamera(
-  window.innerWidth / -2, window.innerWidth / 2,
-  window.innerHeight / 2, window.innerHeight / -2,
-  -50000, 10000
-);
-camera.position.set(0, 0, 0);
-camera.quaternion.setFromEuler(new THREE.Euler(0, 0, 0));
-
-// ── Scene ─────────────────────────────────────────────────────────────────
-const scene = new THREE.Scene();
-
-// ── Renderer ─────────────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
-renderer.setClearColor(0x000000, 0); // fully transparent background
-renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;';
-container.appendChild(renderer.domElement);
-
-// ── Orbit Controls ────────────────────────────────────────────────────────
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.125;
-controls.enableZoom = false;
-controls.enablePan = false;
-
-// ── Load Spline AI Orb Scene (scene (2).splinecode) ────────────────────────
-let splineScene = null;
-let splineRoot = null;
-const loader = new SplineLoader();
-
-const sceneUrl = location.protocol === 'file:'
-  ? 'http://localhost:3000/scene_ai_orb.splinecode'
-  : (location.hostname.endsWith('github.io')
-      ? 'https://adithyahanuman.github.io/Medhas_One/scene_ai_orb.splinecode'
-      : location.origin + '/scene_ai_orb.splinecode');
-
-loader.load(sceneUrl, (loaded) => {
-  splineScene = loaded;
-  splineRoot = new THREE.Group();
-  splineRoot.add(splineScene);
-  scene.add(splineRoot);
-  console.log('[MEDHAS] 3D AI Orb loaded successfully from:', sceneUrl);
-});
-
-// ── Theme-aware background ────────────────────────────────────────────────
-function getThemeBg() {
-  return document.documentElement.getAttribute('data-theme') === 'light'
-    ? new THREE.Color('#f0f4ff') : null;
-}
-scene.background = getThemeBg();
-
-// ── Reactive Animation & Vibration State ─────────────────────────────────
-let _smoothAmp = 0;      // smoothed vibration amplitude
-let _baseRotY = 0;       // gentle base rotation
-let _breathPhase = 0;    // breathing cycle
-let _vibPhase = 0;       // high-freq vibration phase
-
-function getTargetAmp() {
-  const state = window.__currentState || 'idle';
-  const spkAmp = window._aiSpeakAmplitude || 0;
-  if (window._aiSpeaking) return Math.max(spkAmp, 0.055);
-  if (state === 'speaking')  return Math.max(spkAmp, 0.05);
-  if (state === 'thinking')  return 0.02;
-  if (state === 'listening') return 0.025;
-  return 0.005; // idle breathing
-}
-
-function getVibFreq() {
-  const state = window.__currentState || 'idle';
-  if (window._aiSpeaking || state === 'speaking') return 24;  // fast energetic vibration when answering!
-  if (state === 'thinking')  return 10;
-  if (state === 'listening') return 6;
-  return 1.5; // slow breath
-}
-
-// ── Resize Handler ────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  camera.left   = window.innerWidth / -2;
-  camera.right  = window.innerWidth / 2;
-  camera.top    = window.innerHeight / 2;
-  camera.bottom = window.innerHeight / -2;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ── Animation Loop ────────────────────────────────────────────────────────
-renderer.setAnimationLoop((time) => {
-  controls.update();
-
-  // Smooth amplitude toward target
-  const target = getTargetAmp();
-  _smoothAmp += (target - _smoothAmp) * 0.1;
-
-  // Update phases
-  const freq = getVibFreq();
-  _vibPhase   += 0.016 * freq;
-  _breathPhase += 0.008;
-  _baseRotY   += 0.003; // continuous smooth rotation
-
-  if (splineRoot) {
-    // Vibration: position shiver + rotation oscillation when AI answers / speaks
-    const vibX = Math.sin(_vibPhase * 1.1) * _smoothAmp * 15;
-    const vibY = Math.cos(_vibPhase * 0.9) * _smoothAmp * 12;
-    const vibZ = Math.sin(_vibPhase * 1.4) * _smoothAmp * 10;
-
-    const rotVibX = Math.sin(_vibPhase * 1.3) * _smoothAmp * 0.5;
-    const rotVibZ = Math.cos(_vibPhase * 1.7) * _smoothAmp * 0.5;
-
-    // Scale pulsation driven by speech amplitude
-    const pulseScale = 1.0 + Math.sin(_breathPhase) * 0.005 + _smoothAmp * 0.4;
-
-    // Apply transforms
-    splineRoot.position.set(vibX, vibY, vibZ);
-    splineRoot.rotation.x = rotVibX;
-    splineRoot.rotation.z = rotVibZ;
-    splineRoot.rotation.y = _baseRotY + Math.sin(_breathPhase * 0.5) * 0.15;
-    splineRoot.scale.setScalar(pulseScale);
-
-    // Dynamic background glow pulse when AI speaks
-    if (window._aiSpeaking || window.__currentState === 'speaking') {
-      const pulse = (Math.sin(_vibPhase * 0.5) + 1) * 0.5;
-      scene.background = document.documentElement.getAttribute('data-theme') === 'light'
-        ? new THREE.Color(0.92 + pulse * 0.04, 0.95, 1.0)
-        : null;
-    } else {
-      scene.background = getThemeBg();
-    }
+  function getTargetAmp() {
+    const state = window.__currentState || 'idle';
+    const spkAmp = window._aiSpeakAmplitude || 0;
+    if (window._aiSpeaking) return Math.max(spkAmp, 0.08);
+    if (state === 'speaking') return Math.max(spkAmp, 0.07);
+    if (state === 'thinking') return 0.025;
+    if (state === 'listening') return 0.03;
+    return 0.005;
   }
 
-  renderer.render(scene, camera);
-});
+  function animateOrbVibration() {
+    requestAnimationFrame(animateOrbVibration);
+    const state = window.__currentState || 'idle';
+    const isSpeaking = window._aiSpeaking || state === 'speaking';
+    
+    const targetAmp = getTargetAmp();
+    _smoothAmp += (targetAmp - _smoothAmp) * 0.12;
 
-console.log('[MEDHAS] 3D AI Orb scene initialized.');
+    const freq = isSpeaking ? 30 : (state === 'thinking' ? 12 : 2);
+    _vibPhase += 0.016 * freq;
+
+    const vibX = Math.sin(_vibPhase * 1.3) * _smoothAmp * 45;
+    const vibY = Math.cos(_vibPhase * 1.1) * _smoothAmp * 30;
+    const rotZ = Math.sin(_vibPhase * 1.7) * _smoothAmp * 12;
+    const scale = 1.0 + Math.sin(_vibPhase * 0.4) * 0.015 + _smoothAmp * 0.25;
+
+    const viewer = document.getElementById('spline-orb-viewer') || document.getElementById('ai-orb-3d-container');
+    if (viewer) {
+      viewer.style.transform = `translate3d(${vibX.toFixed(1)}px, ${vibY.toFixed(1)}px, 0px) rotate(${rotZ.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+    }
+  }
+  animateOrbVibration();
+})();
 </script>
 </body>
 </html>
