@@ -90,12 +90,12 @@ export function createOrbScene(container, { interactive = true } = {}) {
     controls.enablePan      = false;
   }
 
-  // ——— COLORS (light blue palette) ———
-  const C_BRIGHT = 0x7fe8ff;
-  const C_MID    = 0x4db8ff;
-  const C_DIM    = 0x2a6090;
-  const C_FAINT  = 0x142840;
-  const C_HOT    = 0xb8f0ff;
+  // ——— COLORS (Electric Emerald & Cyber Mint palette) ———
+  const C_BRIGHT = 0x00ff9d;
+  const C_MID    = 0x10b981;
+  const C_DIM    = 0x059669;
+  const C_FAINT  = 0x064e3b;
+  const C_HOT    = 0x6ee7b7;
 
   // ——— ORB ROOT ———
   const orbGroup = new THREE.Group();
