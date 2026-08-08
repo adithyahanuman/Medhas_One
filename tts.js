@@ -9,6 +9,40 @@
  *   • cancel() drains the queue and stops all speech immediately.
  */
 
+/**
+ * Strips markdown symbols, code fences, URLs, and unwanted formatting characters
+ * so Text-To-Speech speaks natural, clean sentences without saying "asterisk", "backtick", etc.
+ */
+export function cleanTextForSpeech(text) {
+  if (!text) return '';
+
+  return text
+    // 1. Remove code blocks (```...```)
+    .replace(/```[\s\S]*?```/g, ' ')
+    // 2. Remove inline code (`...`)
+    .replace(/`([^`]+)`/g, '$1')
+    // 3. Remove URLs (https://... or http://...)
+    .replace(/https?:\/\/\S+/gi, '')
+    // 4. Convert markdown links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // 5. Remove bold/italic markers (**text**, *text*, __text__, _text_)
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    // 6. Remove header markers (#, ##, ###)
+    .replace(/^#{1,6}\s+/gm, '')
+    // 7. Remove bullet points (* item, - item, + item)
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    // 8. Remove numbered list prefixes (1. item, 2. item)
+    .replace(/^[\s]*\d+\.\s+/gm, '')
+    // 9. Remove blockquotes (> text)
+    .replace(/^[\s]*>\s+/gm, '')
+    // 10. Remove remaining unwanted symbols like *, _, `, ~, #, ^, |, \, <, >
+    .replace(/[*_`~#^|\\<>]/g, ' ')
+    // 11. Normalize multiple spaces & newlines into natural spoken pauses
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export class TTSEngine {
   #queue        = [];   // pending { text, cbs } items
   #playing      = false;
@@ -57,11 +91,11 @@ export class TTSEngine {
       return;
     }
 
-    const trimmed = text?.trim();
-    if (!trimmed) { setTimeout(onEnd, 0); return; }
+    const cleaned = cleanTextForSpeech(text);
+    if (!cleaned) { setTimeout(onEnd, 0); return; }
 
     // Add to queue
-    this.#queue.push({ text: trimmed, cbs: { onWord, onAmplitude, onEnd, onError } });
+    this.#queue.push({ text: cleaned, cbs: { onWord, onAmplitude, onEnd, onError } });
 
     // Start processing queue if not already playing
     if (!this.#playing) this.#processQueue();
